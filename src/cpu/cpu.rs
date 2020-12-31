@@ -1,9 +1,13 @@
-use crate::types::{Byte, Memory, Word};
+use crate::types::{byte, Byte, Memory, Word};
 
 use super::instructions;
 
 type CPUCycle = u64;
 pub type Opcode = u8;
+
+// https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
+const cpu_status_operated_b: u8 = 0b110000;
+const cpu_status_interrupted_B: u8 = 0b100000;
 
 pub struct CPU {
     pub(super) a: Byte,
@@ -75,5 +79,24 @@ impl CPU {
         let l = self.pull_stack();
         let h = self.pull_stack();
         h.word() << 8 | l.word()
+    }
+}
+
+// utils
+impl CPU {
+    pub(super) fn set_zn(&mut self, value: Byte) {
+        // Z
+        if value.u8() == 0 {
+            self.p |= 0x02;
+        } else {
+            self.p &= !0x02;
+        }
+
+        // N
+        if value.bit(7) == 1 {
+            self.p |= 0x80;
+        } else {
+            self.p &= !0x80;
+        }
     }
 }
