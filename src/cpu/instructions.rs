@@ -1,4 +1,4 @@
-use crate::types::{word, Byte, Word};
+use crate::types::{Byte, Word};
 
 use super::addressing_modes::{AddressingMode, Operand};
 use super::cpu::{page_crossed, CPU, CPU_STATUS_INTERRUPTED_B, CPU_STATUS_OPERATED_B};
@@ -508,7 +508,7 @@ fn sbc(cpu: &mut CPU, operand: Operand) {
 
 // CoMPare accumulator
 fn cmp(cpu: &mut CPU, operand: Operand) {
-    let cmp = cpu.a.word() - cpu.read(operand).word();
+    let cmp = Word::from(cpu.a) - Word::from(cpu.read(operand));
 
     cpu.p &= !0x83; // C, Z, N
     cpu.set_zn(cmp.byte());
@@ -834,7 +834,7 @@ fn brk(cpu: &mut CPU, operand: Operand) {
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
     cpu.push_stack(cpu.p | CPU_STATUS_INTERRUPTED_B);
     cpu.cycles += 1;
-    cpu.pc = cpu.read_word(word(0xFFFE))
+    cpu.pc = cpu.read_word(0xFFFE)
 }
 
 // No OPeration

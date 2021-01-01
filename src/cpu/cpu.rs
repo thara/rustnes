@@ -34,20 +34,22 @@ impl CPU {
         opcode
     }
 
-    pub(super) fn read(&mut self, addr: Word) -> Byte {
+    pub(super) fn read(&mut self, addr: impl Into<Word>) -> Byte {
+        let addr: Word = addr.into();
         self.cycles += 1;
         self.bus.read(addr)
     }
 
-    pub(super) fn read_word(&mut self, addr: Word) -> Word {
-        self.read(addr).word() | (self.read(addr + 1).word() << 8)
+    pub(super) fn read_word(&mut self, addr: impl Into<Word>) -> Word {
+        let addr: Word = addr.into();
+        Word::from(self.read(addr)) | (Word::from(self.read(addr + 1)) << 8)
     }
 
     pub(super) fn read_on_indirect(&mut self, operand: Word) -> Word {
-        let low = self.read(operand).word();
+        let low = Word::from(self.read(operand));
         // Reproduce 6502 bug; http://nesdev.com/6502bugs.txt
         let addr = operand & 0xFF00 | ((operand + 1) & 0x00FF);
-        let high = self.read(addr).word() << 8;
+        let high = Word::from(self.read(addr)) << 8;
         low | high
     }
 
@@ -60,7 +62,7 @@ impl CPU {
 // stack operation
 impl CPU {
     pub(super) fn push_stack(&mut self, value: Byte) {
-        self.write(self.s.word() + 0x100, value);
+        self.write(Word::from(self.s) + 0x100, value);
         self.s -= 1;
     }
 
@@ -71,13 +73,13 @@ impl CPU {
 
     pub(super) fn pull_stack(&mut self) -> Byte {
         self.s += 1;
-        self.read(self.s.word() + 0x100)
+        self.read(Word::from(self.s) + 0x100)
     }
 
     pub(super) fn pull_stack_word(&mut self) -> Word {
-        let l = self.pull_stack();
-        let h = self.pull_stack();
-        h.word() << 8 | l.word()
+        let l: Word = self.pull_stack().into();
+        let h: Word = self.pull_stack().into();
+        h << 8 | l
     }
 }
 

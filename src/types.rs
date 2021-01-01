@@ -23,20 +23,15 @@ impl Byte {
         (v >> n) & 1
     }
 
-    pub fn word(&self) -> Word {
-        let Self(v) = self;
-        Word(*v as u16)
-    }
-
     pub fn is_set(&self, flag: u8) -> bool {
         let Self(v) = self;
         v & flag == flag
     }
 }
 
-impl Into<u8> for Byte {
-    fn into(self) -> u8 {
-        self.0
+impl From<u8> for Byte {
+    fn from(value: u8) -> Self {
+        Self(value)
     }
 }
 
@@ -234,8 +229,16 @@ impl ops::ShrAssign<u8> for Byte {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Word(u16);
 
-pub fn word(value: u16) -> Word {
-    Word(value)
+impl From<u16> for Word {
+    fn from(value: u16) -> Self {
+        Self(value)
+    }
+}
+
+impl From<Byte> for Word {
+    fn from(Byte(value): Byte) -> Self {
+        Self(value as u16)
+    }
 }
 
 impl Into<u16> for Word {

@@ -1,4 +1,4 @@
-use crate::types::{word, Byte, Word};
+use crate::types::{Byte, Word};
 
 use super::cpu::{page_crossed, CPU};
 
@@ -24,26 +24,26 @@ pub enum AddressingMode {
 impl AddressingMode {
     pub fn get_operand(&self, cpu: &mut CPU) -> Operand {
         match self {
-            Self::Implicit => word(0x00),
-            Self::Accumulator => cpu.a.word(),
+            Self::Implicit => Word::from(0x00),
+            Self::Accumulator => cpu.a.into(),
             Self::Immediate => {
                 let operand = cpu.pc;
                 cpu.pc += 1;
                 operand
             }
             Self::ZeroPage => {
-                let operand = cpu.read(cpu.pc).word() & 0xFF;
+                let operand = Word::from(cpu.read(cpu.pc)) & 0xFF;
                 cpu.pc += 1;
                 operand
             }
             Self::ZeroPageX => {
-                let operand = (cpu.read(cpu.pc).word() + cpu.x.word()) & 0xFF;
+                let operand = (Word::from(cpu.read(cpu.pc)) + Word::from(cpu.x)) & 0xFF;
                 cpu.pc += 1;
                 cpu.cycles += 1;
                 operand
             }
             Self::ZeroPageY => {
-                let operand = (cpu.read(cpu.pc).word() + cpu.y.word()) & 0xFF;
+                let operand = (Word::from(cpu.read(cpu.pc)) + Word::from(cpu.y)) & 0xFF;
                 cpu.pc += 1;
                 cpu.cycles += 1;
                 operand
@@ -55,7 +55,7 @@ impl AddressingMode {
             }
             Self::AbsoluteX { penalty } => {
                 let data = cpu.read_word(cpu.pc);
-                let operand = (data + cpu.x.word()) & 0xFFFF;
+                let operand = (data + Word::from(cpu.x)) & 0xFFFF;
                 cpu.pc += 2;
                 cpu.cycles += 1;
                 if *penalty && page_crossed(operand, data) {
@@ -65,7 +65,7 @@ impl AddressingMode {
             }
             Self::AbsoluteY { penalty } => {
                 let data = cpu.read_word(cpu.pc);
-                let operand = (data + cpu.y.word()) & 0xFFFF;
+                let operand = (data + Word::from(cpu.y)) & 0xFFFF;
                 cpu.pc += 2;
                 cpu.cycles += 1;
                 if *penalty && page_crossed(operand, data) {
@@ -74,7 +74,7 @@ impl AddressingMode {
                 operand
             }
             Self::Relative => {
-                let operand = cpu.read(cpu.pc).word();
+                let operand: Word = cpu.read(cpu.pc).into();
                 cpu.pc += 1;
                 operand
             }
@@ -86,14 +86,14 @@ impl AddressingMode {
             }
             Self::IndexedIndirect => {
                 let data = cpu.read(cpu.pc);
-                let operand = cpu.read_on_indirect((data + cpu.x).word() & 0xFF);
+                let operand = cpu.read_on_indirect(Word::from(data + cpu.x) & 0xFF);
                 cpu.pc += 1;
                 cpu.cycles += 1;
                 operand
             }
             Self::IndirectIndexed => {
-                let y = cpu.y.word();
-                let data = cpu.read(cpu.pc).word();
+                let y: Word = cpu.y.into();
+                let data: Word = cpu.read(cpu.pc).into();
                 let operand = cpu.read_on_indirect(data) + y;
                 cpu.pc += 1;
                 if page_crossed(y, operand - y) {
