@@ -1,13 +1,12 @@
-use crate::types::{byte, Byte, Memory, Word};
+use crate::types::{Byte, Memory, Word};
 
 use super::instructions;
 
 type CPUCycle = u64;
-pub type Opcode = u8;
 
 // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
-const cpu_status_operated_b: u8 = 0b110000;
-const cpu_status_interrupted_B: u8 = 0b100000;
+pub(super) const CPU_STATUS_OPERATED_B: u8 = 0b110000;
+pub(super) const CPU_STATUS_INTERRUPTED_B: u8 = 0b100000;
 
 pub struct CPU {
     pub(super) a: Byte,
@@ -99,4 +98,10 @@ impl CPU {
             self.p &= !0x80;
         }
     }
+}
+
+pub fn page_crossed<A: Into<i64>, B: Into<i64>>(value: A, from: B) -> bool {
+    let a = value.into();
+    let b = from.into();
+    ((b + a) & 0xFF00) != (b & 0xFF00)
 }
