@@ -1,6 +1,7 @@
 use crate::types::{Byte, Memory, Word};
 
 use super::instructions;
+use super::status::CPUStatus;
 
 type CPUCycle = u64;
 
@@ -13,7 +14,7 @@ pub struct CPU {
     pub(super) x: Byte,
     pub(super) y: Byte,
     pub(super) s: Byte,
-    pub(super) p: Byte,
+    pub(super) p: CPUStatus,
     pub(super) pc: Word,
 
     pub(super) cycles: CPUCycle,
@@ -61,7 +62,8 @@ impl CPU {
 
 // stack operation
 impl CPU {
-    pub(super) fn push_stack(&mut self, value: Byte) {
+    pub(super) fn push_stack(&mut self, value: impl Into<Byte>) {
+        let value = value.into();
         self.write(Word::from(self.s) + 0x100, value);
         self.s -= 1;
     }
@@ -86,19 +88,8 @@ impl CPU {
 // utils
 impl CPU {
     pub(super) fn set_zn(&mut self, value: Byte) {
-        // Z
-        if value.u8() == 0 {
-            self.p |= 0x02;
-        } else {
-            self.p &= !0x02;
-        }
-
-        // N
-        if value.bit(7) == 1 {
-            self.p |= 0x80;
-        } else {
-            self.p &= !0x80;
-        }
+        self.p.update(CPUStatus::Z, value.u8() == 0);
+        self.p.update(CPUStatus::N, value.bit(7) == 1);
     }
 }
 

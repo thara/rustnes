@@ -2,6 +2,7 @@ use crate::types::{Byte, Word};
 
 use super::addressing_modes::{AddressingMode, Operand};
 use super::cpu::{page_crossed, CPU, CPU_STATUS_INTERRUPTED_B, CPU_STATUS_OPERATED_B};
+use super::status::CPUStatus;
 
 // http://obelisk.me.uk/6502/reference.html
 pub enum Mnemonic {
@@ -407,7 +408,7 @@ fn pha(cpu: &mut CPU, _operand: Operand) {
 fn php(cpu: &mut CPU, _operand: Operand) {
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
-    cpu.push_stack(cpu.p | CPU_STATUS_OPERATED_B);
+    cpu.push_stack(cpu.p | CPUStatus::OPERATED_B);
     cpu.cycles += 1;
 }
 
@@ -421,7 +422,7 @@ fn pla(cpu: &mut CPU, _operand: Operand) {
 fn plp(cpu: &mut CPU, _operand: Operand) {
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
-    cpu.p = cpu.pull_stack() & 0x10 | 0x20;
+    cpu.p = CPUStatus::from(cpu.pull_stack()) & !CPUStatus::B | CPUStatus::R;
     cpu.cycles += 2
 }
 
@@ -447,7 +448,9 @@ fn ora(cpu: &mut CPU, operand: Operand) {
 fn bit(cpu: &mut CPU, operand: Operand) {
     let value = cpu.read(operand);
     let data = cpu.a & value;
-    cpu.p &= 0xC2; // Z, V, N
+    cpu.p.update(CPUStatus::Z, data.u8() == 0);
+    cpu.p.update(CPUStatus::V, data.is_set(6));
+    cpu.p.update(CPUStatus::N, data.is_set(7));
 }
 
 // ADd with Carry
@@ -456,11 +459,12 @@ fn adc(cpu: &mut CPU, operand: Operand) {
     let val = cpu.read(operand);
     let mut result = a + val;
 
-    if cpu.p.is_set(0b10) {
+    if cpu.p.is_set(CPUStatus::C) {
         result += 1;
     }
 
-    cpu.p &= !0xC3; // C, Z, V, N
+    cpu.p
+        .unset(CPUStatus::C | CPUStatus::Z | CPUStatus::V | CPUStatus::N);
 
     // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
     let a7 = a & 0x80;
@@ -469,10 +473,10 @@ fn adc(cpu: &mut CPU, operand: Operand) {
     let c7 = (a7 & v7) | (a7 & c6) | (v7 & c6);
 
     if c7.u8() == 1 {
-        cpu.p |= 0x01; // C
+        cpu.p.set(CPUStatus::C)
     }
     if (c6 ^ c7).u8() == 1 {
-        cpu.p |= 0x40; // V
+        cpu.p.set(CPUStatus::V)
     }
 
     cpu.a = result
@@ -484,11 +488,12 @@ fn sbc(cpu: &mut CPU, operand: Operand) {
     let val = !cpu.read(operand);
     let mut result = a + val;
 
-    if cpu.p.is_set(0b10) {
+    if cpu.p.is_set(CPUStatus::C) {
         result += 1;
     }
 
-    cpu.p &= !0xC3; // C, Z, V, N
+    cpu.p
+        .unset(CPUStatus::C | CPUStatus::Z | CPUStatus::V | CPUStatus::N);
 
     // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
     let a7 = a & 0x80;
@@ -497,10 +502,10 @@ fn sbc(cpu: &mut CPU, operand: Operand) {
     let c7 = (a7 & v7) | (a7 & c6) | (v7 & c6);
 
     if c7.u8() == 1 {
-        cpu.p |= 0x01; // C
+        cpu.p.set(CPUStatus::C)
     }
     if (c6 ^ c7).u8() == 1 {
-        cpu.p |= 0x40; // V
+        cpu.p.set(CPUStatus::V)
     }
 
     cpu.a = result
@@ -510,13 +515,9 @@ fn sbc(cpu: &mut CPU, operand: Operand) {
 fn cmp(cpu: &mut CPU, operand: Operand) {
     let cmp = Word::from(cpu.a) - Word::from(cpu.read(operand));
 
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     cpu.set_zn(cmp.byte());
-    if 0 <= cmp.into() {
-        cpu.p |= 0x01 // C
-    } else {
-        cpu.p &= !0x01 // C
-    }
+    cpu.p.update(CPUStatus::C, 0 <= cmp.into())
 }
 
 // ComPare X register
@@ -524,13 +525,9 @@ fn cpx(cpu: &mut CPU, operand: Operand) {
     let value = cpu.read(operand);
     let cmp = cpu.x - value;
 
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     cpu.set_zn(cmp);
-    if value <= cpu.x {
-        cpu.p |= 0x01 // C
-    } else {
-        cpu.p &= !0x01 // C
-    }
+    cpu.p.update(CPUStatus::C, value <= cpu.x)
 }
 
 // ComPare Y register
@@ -538,13 +535,9 @@ fn cpy(cpu: &mut CPU, operand: Operand) {
     let value = cpu.read(operand);
     let cmp = cpu.y - value;
 
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     cpu.set_zn(cmp);
-    if value <= cpu.y {
-        cpu.p |= 0x01 // C
-    } else {
-        cpu.p &= !0x01 // C
-    }
+    cpu.p.update(CPUStatus::C, value <= cpu.y)
 }
 
 // INCrement memory
@@ -593,9 +586,9 @@ fn dey(cpu: &mut CPU, operand: Operand) {
 fn asl(cpu: &mut CPU, operand: Operand) {
     let mut data = cpu.read(operand);
 
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if data.is_set(7) {
-        cpu.p |= 0x01 // C
+        cpu.p.set(CPUStatus::C);
     }
 
     data <<= 1;
@@ -605,9 +598,9 @@ fn asl(cpu: &mut CPU, operand: Operand) {
 }
 
 fn asl_for_accumelator(cpu: &mut CPU, operand: Operand) {
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if cpu.a.is_set(7) {
-        cpu.p |= 0x01 // C
+        cpu.p.set(CPUStatus::C);
     }
     cpu.a <<= 1;
     cpu.cycles += 1;
@@ -617,9 +610,9 @@ fn asl_for_accumelator(cpu: &mut CPU, operand: Operand) {
 fn lsr(cpu: &mut CPU, operand: Operand) {
     let mut data = cpu.read(operand);
 
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if data.is_set(0) {
-        cpu.p |= 0x01 // C
+        cpu.p.set(CPUStatus::C);
     }
 
     data >>= 1;
@@ -629,9 +622,9 @@ fn lsr(cpu: &mut CPU, operand: Operand) {
 }
 
 fn lsr_for_accumelator(cpu: &mut CPU, operand: Operand) {
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if cpu.a.is_set(0) {
-        cpu.p |= 0x01 // C
+        cpu.p.set(CPUStatus::C);
     }
     cpu.a >>= 1;
     cpu.cycles += 1;
@@ -644,12 +637,12 @@ fn rol(cpu: &mut CPU, operand: Operand) {
 
     data <<= 1;
     // C
-    if cpu.p.is_set(0) {
+    if cpu.p.is_set(CPUStatus::C) {
         data |= 0x01;
     }
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if c.u8() == 0x80 {
-        cpu.p |= 0x01 // C
+        cpu.p.set(CPUStatus::C);
     }
     cpu.set_zn(data);
     cpu.write(operand, data);
@@ -660,9 +653,9 @@ fn rol_for_accumelator(cpu: &mut CPU, operand: Operand) {
     let c = cpu.a & 0x80;
 
     let mut a = cpu.a << 1;
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if c.u8() == 0x80 {
-        cpu.p |= 0x01 // C
+        cpu.p.set(CPUStatus::C);
     }
     cpu.a = a;
     cpu.cycles += 1;
@@ -675,12 +668,12 @@ fn ror(cpu: &mut CPU, operand: Operand) {
 
     data >>= 1;
     // C
-    if cpu.p.is_set(0) {
+    if cpu.p.is_set(CPUStatus::C) {
         data |= 0x80;
     }
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if c.u8() == 1 {
-        cpu.p |= 0x01 // C
+        cpu.p.set(CPUStatus::C);
     }
     cpu.set_zn(data);
     cpu.write(operand, data);
@@ -691,12 +684,12 @@ fn ror_for_accumelator(cpu: &mut CPU, operand: Operand) {
     let c = cpu.a & 0x80;
 
     let mut a = cpu.a >> 1;
-    if cpu.p.is_set(0) {
+    if cpu.p.is_set(CPUStatus::C) {
         a |= 0x80;
     }
-    cpu.p &= !0x83; // C, Z, N
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if c.u8() == 0x80 {
-        cpu.p |= 0x01 // C
+        cpu.p.set(CPUStatus::C)
     }
     cpu.a = a;
     cpu.cycles += 1;
@@ -725,105 +718,105 @@ fn rti(cpu: &mut CPU, operand: Operand) {
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
     cpu.cycles += 2;
-    cpu.p = cpu.pull_stack() & !0x10 | 0x20;
+    cpu.p = CPUStatus::from(cpu.pull_stack()) & !CPUStatus::B | CPUStatus::R;
     cpu.pc = cpu.pull_stack_word()
 }
 
 // Branch if Carry Clear
 fn bcc(cpu: &mut CPU, operand: Operand) {
-    if !cpu.p.is_set(0) {
+    if !cpu.p.is_set(CPUStatus::C) {
         branch(cpu, operand)
     }
 }
 
 // Branch if Carry Set
 fn bcs(cpu: &mut CPU, operand: Operand) {
-    if cpu.p.is_set(0) {
+    if cpu.p.is_set(CPUStatus::C) {
         branch(cpu, operand)
     }
 }
 
 // Branch if EQual
 fn beq(cpu: &mut CPU, operand: Operand) {
-    if cpu.p.is_set(1) {
+    if cpu.p.is_set(CPUStatus::Z) {
         branch(cpu, operand)
     }
 }
 
 // Branch if MInus
 fn bmi(cpu: &mut CPU, operand: Operand) {
-    if cpu.p.is_set(7) {
+    if cpu.p.is_set(CPUStatus::N) {
         branch(cpu, operand)
     }
 }
 
 // Branch if NotEqual
 fn bne(cpu: &mut CPU, operand: Operand) {
-    if !cpu.p.is_set(1) {
+    if !cpu.p.is_set(CPUStatus::Z) {
         branch(cpu, operand)
     }
 }
 
 // Branch if PLus
 fn bpl(cpu: &mut CPU, operand: Operand) {
-    if cpu.p.is_set(1) {
+    if cpu.p.is_set(CPUStatus::N) {
         branch(cpu, operand)
     }
 }
 
 // Branch if oVerflow Clear
 fn bvc(cpu: &mut CPU, operand: Operand) {
-    if !cpu.p.is_set(6) {
+    if !cpu.p.is_set(CPUStatus::V) {
         branch(cpu, operand)
     }
 }
 
 // Branch if oVerflow Set
 fn bvs(cpu: &mut CPU, operand: Operand) {
-    if cpu.p.is_set(6) {
+    if cpu.p.is_set(CPUStatus::V) {
         branch(cpu, operand)
     }
 }
 
 // CLear Carry
 fn clc(cpu: &mut CPU, operand: Operand) {
-    cpu.p &= !0x01; // C
+    cpu.p.unset(CPUStatus::C);
     cpu.cycles += 1
 }
 
 // CLear Decimal
 fn cld(cpu: &mut CPU, operand: Operand) {
-    cpu.p &= !0x08; // D
+    cpu.p.unset(CPUStatus::D);
     cpu.cycles += 1
 }
 
 // Clear Interrupt
 fn cli(cpu: &mut CPU, operand: Operand) {
-    cpu.p &= !0x04; // I
+    cpu.p.unset(CPUStatus::I);
     cpu.cycles += 1
 }
 
 // CLear oVerflow
 fn clv(cpu: &mut CPU, operand: Operand) {
-    cpu.p &= !0x40; // V
+    cpu.p.unset(CPUStatus::V);
     cpu.cycles += 1
 }
 
 // SEt Carry flag
 fn sec(cpu: &mut CPU, operand: Operand) {
-    cpu.p |= 0x01; // C
+    cpu.p.set(CPUStatus::C);
     cpu.cycles += 1
 }
 
 // SEt Decimal flag
 fn sed(cpu: &mut CPU, operand: Operand) {
-    cpu.p |= 0x08; // D
+    cpu.p.set(CPUStatus::D);
     cpu.cycles += 1
 }
 
 // SEt Interrupt disable
 fn sei(cpu: &mut CPU, operand: Operand) {
-    cpu.p |= 0x04; // I
+    cpu.p.set(CPUStatus::I);
     cpu.cycles += 1
 }
 
@@ -832,7 +825,7 @@ fn brk(cpu: &mut CPU, operand: Operand) {
     cpu.push_stack_word(cpu.pc);
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
-    cpu.push_stack(cpu.p | CPU_STATUS_INTERRUPTED_B);
+    cpu.push_stack(cpu.p | CPUStatus::INTERRUPTED_B);
     cpu.cycles += 1;
     cpu.pc = cpu.read_word(0xFFFE)
 }
