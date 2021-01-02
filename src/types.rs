@@ -14,10 +14,6 @@ impl Byte {
         self.0
     }
 
-    pub fn i64(&self) -> i64 {
-        self.0 as i64
-    }
-
     pub fn bit(&self, n: u8) -> u8 {
         let Self(v) = self;
         (v >> n) & 1
@@ -260,14 +256,6 @@ impl Into<i64> for Word {
 }
 
 impl Word {
-    pub fn u16(&self) -> u16 {
-        self.0
-    }
-
-    pub fn i64(&self) -> i64 {
-        self.0 as i64
-    }
-
     pub fn byte(&self) -> Byte {
         let Self(v) = self;
         Byte(*v as u8)

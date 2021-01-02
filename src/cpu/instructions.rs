@@ -1,7 +1,7 @@
 use crate::types::{Byte, Word};
 
 use super::addressing_modes::{AddressingMode, Operand};
-use super::cpu::{page_crossed, CPU, CPU_STATUS_INTERRUPTED_B, CPU_STATUS_OPERATED_B};
+use super::cpu::{page_crossed, CPU};
 use super::status::CPUStatus;
 
 // http://obelisk.me.uk/6502/reference.html
@@ -324,11 +324,86 @@ pub fn decode(opcode: Byte) -> Opcode {
         0x7B => (Mnemonic::RRA, AddressingMode::AbsoluteY { penalty: false }),
         0x7F => (Mnemonic::RRA, AddressingMode::AbsoluteX { penalty: false }),
 
-        default => (Mnemonic::NOP, AddressingMode::Implicit),
+        _ => (Mnemonic::NOP, AddressingMode::Implicit),
     };
     Opcode {
         mnemonic: m,
         addressing_mode: am,
+    }
+}
+
+pub fn execute(cpu: &mut CPU, opcode: Opcode) {
+    let operand = opcode.addressing_mode.get_operand(cpu);
+
+    match (opcode.mnemonic, opcode.addressing_mode) {
+        (Mnemonic::LDA, _) => lda(cpu, operand),
+        (Mnemonic::LDX, _) => ldx(cpu, operand),
+        (Mnemonic::LDY, _) => ldy(cpu, operand),
+        (Mnemonic::STA, _) => sta(cpu, operand),
+        (Mnemonic::STX, _) => stx(cpu, operand),
+        (Mnemonic::STY, _) => sty(cpu, operand),
+        (Mnemonic::TAX, _) => tax(cpu, operand),
+        (Mnemonic::TSX, _) => tsx(cpu, operand),
+        (Mnemonic::TAY, _) => tay(cpu, operand),
+        (Mnemonic::TXA, _) => txa(cpu, operand),
+        (Mnemonic::TXS, _) => txs(cpu, operand),
+        (Mnemonic::TYA, _) => tya(cpu, operand),
+        (Mnemonic::PHA, _) => pha(cpu, operand),
+        (Mnemonic::PHP, _) => php(cpu, operand),
+        (Mnemonic::PLA, _) => pla(cpu, operand),
+        (Mnemonic::PLP, _) => plp(cpu, operand),
+        (Mnemonic::AND, _) => and(cpu, operand),
+        (Mnemonic::EOR, _) => eor(cpu, operand),
+        (Mnemonic::ORA, _) => ora(cpu, operand),
+        (Mnemonic::BIT, _) => bit(cpu, operand),
+        (Mnemonic::ADC, _) => adc(cpu, operand),
+        (Mnemonic::SBC, _) => sbc(cpu, operand),
+        (Mnemonic::CMP, _) => cmp(cpu, operand),
+        (Mnemonic::CPX, _) => cpx(cpu, operand),
+        (Mnemonic::CPY, _) => cpy(cpu, operand),
+        (Mnemonic::INC, _) => inc(cpu, operand),
+        (Mnemonic::INX, _) => inx(cpu),
+        (Mnemonic::INY, _) => iny(cpu),
+        (Mnemonic::DEC, _) => dec(cpu, operand),
+        (Mnemonic::DEX, _) => dex(cpu),
+        (Mnemonic::DEY, _) => dey(cpu),
+        (Mnemonic::ASL, AddressingMode::Accumulator) => asl_for_accumelator(cpu),
+        (Mnemonic::ASL, _) => asl(cpu, operand),
+        (Mnemonic::LSR, AddressingMode::Accumulator) => lsr_for_accumelator(cpu),
+        (Mnemonic::LSR, _) => lsr(cpu, operand),
+        (Mnemonic::ROL, AddressingMode::Accumulator) => rol_for_accumelator(cpu),
+        (Mnemonic::ROL, _) => rol(cpu, operand),
+        (Mnemonic::ROR, AddressingMode::Accumulator) => ror_for_accumelator(cpu),
+        (Mnemonic::ROR, _) => ror(cpu, operand),
+        (Mnemonic::JMP, _) => jmp(cpu, operand),
+        (Mnemonic::JSR, _) => jsr(cpu, operand),
+        (Mnemonic::RTS, _) => rts(cpu),
+        (Mnemonic::RTI, _) => rti(cpu),
+        (Mnemonic::BCC, _) => bcc(cpu, operand),
+        (Mnemonic::BCS, _) => bcs(cpu, operand),
+        (Mnemonic::BEQ, _) => beq(cpu, operand),
+        (Mnemonic::BMI, _) => bmi(cpu, operand),
+        (Mnemonic::BNE, _) => bne(cpu, operand),
+        (Mnemonic::BPL, _) => bpl(cpu, operand),
+        (Mnemonic::BVC, _) => bvc(cpu, operand),
+        (Mnemonic::BVS, _) => bvs(cpu, operand),
+        (Mnemonic::CLC, _) => clc(cpu),
+        (Mnemonic::CLD, _) => cld(cpu),
+        (Mnemonic::CLI, _) => cli(cpu),
+        (Mnemonic::CLV, _) => clv(cpu),
+        (Mnemonic::SEC, _) => sec(cpu),
+        (Mnemonic::SED, _) => sed(cpu),
+        (Mnemonic::SEI, _) => sei(cpu),
+        (Mnemonic::BRK, _) => brk(cpu),
+        (Mnemonic::NOP, _) => nop(cpu),
+        (Mnemonic::LAX, _) => lax(cpu, operand),
+        (Mnemonic::SAX, _) => sax(cpu, operand),
+        (Mnemonic::DCP, _) => dcp(cpu, operand),
+        (Mnemonic::ISB, _) => isb(cpu, operand),
+        (Mnemonic::SLO, _) => slo(cpu, operand),
+        (Mnemonic::RLA, _) => rla(cpu, operand),
+        (Mnemonic::SRE, _) => sre(cpu, operand),
+        (Mnemonic::RRA, _) => rra(cpu, operand),
     }
 }
 
@@ -550,13 +625,13 @@ fn inc(cpu: &mut CPU, operand: Operand) {
 }
 
 // INcrement X register
-fn inx(cpu: &mut CPU, operand: Operand) {
+fn inx(cpu: &mut CPU) {
     cpu.x += 1;
     cpu.cycles += 1
 }
 
 // INcrement Y register
-fn iny(cpu: &mut CPU, operand: Operand) {
+fn iny(cpu: &mut CPU) {
     cpu.y += 1;
     cpu.cycles += 1
 }
@@ -571,13 +646,13 @@ fn dec(cpu: &mut CPU, operand: Operand) {
 }
 
 // DEcrement X register
-fn dex(cpu: &mut CPU, operand: Operand) {
+fn dex(cpu: &mut CPU) {
     cpu.x -= 1;
     cpu.cycles += 1
 }
 
 // DEcrement Y register
-fn dey(cpu: &mut CPU, operand: Operand) {
+fn dey(cpu: &mut CPU) {
     cpu.y -= 1;
     cpu.cycles += 1
 }
@@ -597,7 +672,7 @@ fn asl(cpu: &mut CPU, operand: Operand) {
     cpu.cycles += 1;
 }
 
-fn asl_for_accumelator(cpu: &mut CPU, operand: Operand) {
+fn asl_for_accumelator(cpu: &mut CPU) {
     cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if cpu.a.is_set(7) {
         cpu.p.set(CPUStatus::C);
@@ -621,7 +696,7 @@ fn lsr(cpu: &mut CPU, operand: Operand) {
     cpu.cycles += 1;
 }
 
-fn lsr_for_accumelator(cpu: &mut CPU, operand: Operand) {
+fn lsr_for_accumelator(cpu: &mut CPU) {
     cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if cpu.a.is_set(0) {
         cpu.p.set(CPUStatus::C);
@@ -649,10 +724,10 @@ fn rol(cpu: &mut CPU, operand: Operand) {
     cpu.cycles += 1;
 }
 
-fn rol_for_accumelator(cpu: &mut CPU, operand: Operand) {
+fn rol_for_accumelator(cpu: &mut CPU) {
     let c = cpu.a & 0x80;
 
-    let mut a = cpu.a << 1;
+    let a = cpu.a << 1;
     cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
     if c.u8() == 0x80 {
         cpu.p.set(CPUStatus::C);
@@ -680,7 +755,7 @@ fn ror(cpu: &mut CPU, operand: Operand) {
     cpu.cycles += 1;
 }
 
-fn ror_for_accumelator(cpu: &mut CPU, operand: Operand) {
+fn ror_for_accumelator(cpu: &mut CPU) {
     let c = cpu.a & 0x80;
 
     let mut a = cpu.a >> 1;
@@ -708,13 +783,13 @@ fn jsr(cpu: &mut CPU, operand: Operand) {
 }
 
 // ReTurn from Subroutine
-fn rts(cpu: &mut CPU, operand: Operand) {
+fn rts(cpu: &mut CPU) {
     cpu.cycles += 3;
     cpu.pc = cpu.pull_stack_word() + 1
 }
 
 // ReTurn from Interrupt
-fn rti(cpu: &mut CPU, operand: Operand) {
+fn rti(cpu: &mut CPU) {
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
     cpu.cycles += 2;
@@ -779,49 +854,49 @@ fn bvs(cpu: &mut CPU, operand: Operand) {
 }
 
 // CLear Carry
-fn clc(cpu: &mut CPU, operand: Operand) {
+fn clc(cpu: &mut CPU) {
     cpu.p.unset(CPUStatus::C);
     cpu.cycles += 1
 }
 
 // CLear Decimal
-fn cld(cpu: &mut CPU, operand: Operand) {
+fn cld(cpu: &mut CPU) {
     cpu.p.unset(CPUStatus::D);
     cpu.cycles += 1
 }
 
 // Clear Interrupt
-fn cli(cpu: &mut CPU, operand: Operand) {
+fn cli(cpu: &mut CPU) {
     cpu.p.unset(CPUStatus::I);
     cpu.cycles += 1
 }
 
 // CLear oVerflow
-fn clv(cpu: &mut CPU, operand: Operand) {
+fn clv(cpu: &mut CPU) {
     cpu.p.unset(CPUStatus::V);
     cpu.cycles += 1
 }
 
 // SEt Carry flag
-fn sec(cpu: &mut CPU, operand: Operand) {
+fn sec(cpu: &mut CPU) {
     cpu.p.set(CPUStatus::C);
     cpu.cycles += 1
 }
 
 // SEt Decimal flag
-fn sed(cpu: &mut CPU, operand: Operand) {
+fn sed(cpu: &mut CPU) {
     cpu.p.set(CPUStatus::D);
     cpu.cycles += 1
 }
 
 // SEt Interrupt disable
-fn sei(cpu: &mut CPU, operand: Operand) {
+fn sei(cpu: &mut CPU) {
     cpu.p.set(CPUStatus::I);
     cpu.cycles += 1
 }
 
 // BReaK(force interrupt)
-fn brk(cpu: &mut CPU, operand: Operand) {
+fn brk(cpu: &mut CPU) {
     cpu.push_stack_word(cpu.pc);
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
@@ -831,7 +906,7 @@ fn brk(cpu: &mut CPU, operand: Operand) {
 }
 
 // No OPeration
-fn nop(cpu: &mut CPU, operand: Operand) {
+fn nop(cpu: &mut CPU) {
     cpu.cycles += 1;
 }
 
@@ -841,4 +916,104 @@ fn branch(cpu: &mut CPU, operand: Operand) {
         cpu.cycles += 1;
     }
     cpu.pc += operand
+}
+
+// Load Accumulator and X register
+fn lax(cpu: &mut CPU, operand: Operand) {
+    let data = cpu.read(operand);
+    cpu.a = data;
+    cpu.x = data;
+}
+
+// Store Accumulator and X register
+fn sax(cpu: &mut CPU, operand: Operand) {
+    cpu.write(operand, cpu.a & cpu.x)
+}
+
+// Decrement memory and ComPare to accumulator
+fn dcp(cpu: &mut CPU, operand: Operand) {
+    let result = cpu.read(operand) - 1;
+    cpu.set_zn(result);
+    cpu.write(operand, result);
+
+    cmp(cpu, operand)
+}
+
+// Increment memory and SuBtract with carry
+fn isb(cpu: &mut CPU, operand: Operand) {
+    let result = cpu.read(operand) + 1;
+    cpu.set_zn(result);
+    cpu.write(operand, result);
+
+    sbc(cpu, operand)
+}
+
+// arithmetic Shift Left and bitwise Or with accumulator
+fn slo(cpu: &mut CPU, operand: Operand) {
+    let mut data = cpu.read(operand);
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
+    if data.is_set(7) {
+        cpu.p.set(CPUStatus::C);
+    }
+
+    data <<= 1;
+    cpu.set_zn(data);
+    cpu.write(operand, data);
+
+    ora(cpu, operand)
+}
+
+// Rotate Left and bitwise And with accumulator
+fn rla(cpu: &mut CPU, operand: Operand) {
+    // rotateLeft excluding tick
+    let mut data = cpu.read(operand);
+    let c = data & 0x80;
+
+    data <<= 1;
+    if cpu.p.is_set(CPUStatus::C) {
+        data |= 0x01
+    }
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
+    cpu.p.update(CPUStatus::C, c.u8() == 0x80);
+    cpu.set_zn(data);
+
+    cpu.write(operand, data);
+
+    and(cpu, operand)
+}
+
+// logical Shift Right and bitwise Exclusive or
+fn sre(cpu: &mut CPU, operand: Operand) {
+    // logicalShiftRight excluding tick
+    let mut data = cpu.read(operand);
+
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
+    cpu.p.update(CPUStatus::C, data.is_set(0));
+
+    data >>= 1;
+
+    cpu.set_zn(data);
+
+    cpu.write(operand, data);
+
+    eor(cpu, operand)
+}
+
+// Rotate Right and Add with carry
+fn rra(cpu: &mut CPU, operand: Operand) {
+    // rotateRight excluding tick
+    let mut data = cpu.read(operand);
+    let c = data & 0x80;
+
+    data >>= 1;
+    if cpu.p.is_set(CPUStatus::C) {
+        data |= 0x80
+    }
+    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
+    cpu.p.update(CPUStatus::C, c.u8() == 1);
+    cpu.set_zn(data);
+
+    cpu.write(operand, data);
+
+    adc(cpu, operand)
 }

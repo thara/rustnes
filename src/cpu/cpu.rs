@@ -1,13 +1,9 @@
 use crate::types::{Byte, Memory, Word};
 
-use super::instructions;
+use super::instructions::{decode, execute};
 use super::status::CPUStatus;
 
 type CPUCycle = u64;
-
-// https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
-pub(super) const CPU_STATUS_OPERATED_B: u8 = 0b110000;
-pub(super) const CPU_STATUS_INTERRUPTED_B: u8 = 0b100000;
 
 pub struct CPU {
     pub(super) a: Byte,
@@ -23,13 +19,13 @@ pub struct CPU {
 }
 
 impl CPU {
-    fn step(&mut self) {
-        let opcode = self.fetch_opcode();
-        // let instruction = decode(opcode);
-        // instruction.execute(&self);
+    pub fn step(&mut self) {
+        let instruction = self.fetch();
+        let opcode = decode(instruction);
+        execute(self, opcode);
     }
 
-    fn fetch_opcode(&mut self) -> Byte {
+    fn fetch(&mut self) -> Byte {
         let opcode = self.read(self.pc);
         self.pc += 1;
         opcode

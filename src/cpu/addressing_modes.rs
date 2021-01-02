@@ -1,4 +1,4 @@
-use crate::types::{Byte, Word};
+use crate::types::Word;
 
 use super::cpu::{page_crossed, CPU};
 
