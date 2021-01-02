@@ -1,8 +1,8 @@
 use crate::types::{Byte, Word};
 
 use super::addressing_modes::{AddressingMode, Operand};
-use super::cpu::{page_crossed, CPU};
 use super::status::CPUStatus;
+use super::{page_crossed, CPU};
 
 // http://obelisk.me.uk/6502/reference.html
 pub enum Mnemonic {

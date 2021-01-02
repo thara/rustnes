@@ -1,6 +1,6 @@
 use crate::types::Word;
 
-use super::cpu::{page_crossed, CPU};
+use super::{page_crossed, CPU};
 
 pub type Operand = Word;
 
@@ -55,7 +55,7 @@ impl AddressingMode {
             }
             Self::AbsoluteX { penalty } => {
                 let data = cpu.read_word(cpu.pc);
-                let operand = (data + Word::from(cpu.x)) & 0xFFFF;
+                let operand = data + Word::from(cpu.x);
                 cpu.pc += 2;
                 cpu.cycles += 1;
                 if *penalty && page_crossed(operand, data) {
@@ -65,7 +65,7 @@ impl AddressingMode {
             }
             Self::AbsoluteY { penalty } => {
                 let data = cpu.read_word(cpu.pc);
-                let operand = (data + Word::from(cpu.y)) & 0xFFFF;
+                let operand = data + Word::from(cpu.y);
                 cpu.pc += 2;
                 cpu.cycles += 1;
                 if *penalty && page_crossed(operand, data) {
