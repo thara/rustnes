@@ -23,6 +23,18 @@ pub struct CPU {
 }
 
 impl CPU {
+    pub fn new(cpu_bus: Box<dyn Memory>) -> Self {
+        Self {
+            a: 0x00.into(),
+            x: 0x00.into(),
+            y: 0x00.into(),
+            s: 0x00.into(),
+            p: CPUStatus::from(0),
+            pc: 0x00.into(),
+            cycles: 0,
+            bus: cpu_bus,
+        }
+    }
     pub fn step(&mut self) {
         let instruction = self.fetch();
         let opcode = decode(instruction);

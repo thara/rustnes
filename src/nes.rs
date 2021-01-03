@@ -1,10 +1,22 @@
 use crate::cpu::{CPUCycle, CPU};
 use crate::interrupt::Interrupt;
+use crate::memory_map::CPUBus;
+use crate::types::Memory;
 
 pub struct NES {
     cpu: CPU,
 
     interrupt: Interrupt,
+}
+
+impl Default for NES {
+    fn default() -> Self {
+        let cpu_bus: Box<dyn Memory> = Box::new(CPUBus::new());
+        Self {
+            cpu: CPU::new(cpu_bus),
+            interrupt: Interrupt::NO_INTERRUPT,
+        }
+    }
 }
 
 impl NES {

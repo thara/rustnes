@@ -9,7 +9,7 @@ impl Interrupt {
     pub const IRQ: Self = Self { raw_value: 1 << 1 };
     pub const BRK: Self = Self { raw_value: 1 << 0 };
 
-    const NO_INTERRUPT: Self = Self { raw_value: 0 };
+    pub const NO_INTERRUPT: Self = Self { raw_value: 0 };
 
     pub fn get(&self) -> Self {
         if self.is_set(Self::RESET) {

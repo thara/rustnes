@@ -31,6 +31,12 @@ impl From<u8> for Byte {
     }
 }
 
+impl Into<u8> for Byte {
+    fn into(self) -> u8 {
+        self.0
+    }
+}
+
 impl Into<u16> for Byte {
     fn into(self) -> u16 {
         self.0 as u16
