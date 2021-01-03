@@ -28,3 +28,19 @@ impl Memory for CPUBus {
         }
     }
 }
+
+#[cfg(test)]
+pub mod test_util {
+    use crate::types::{Byte, Memory, Word};
+
+    impl Memory for [u8; 0x10000] {
+        fn read(&self, addr: Word) -> Byte {
+            let addr: u16 = addr.into();
+            self[addr as usize].into()
+        }
+        fn write(&mut self, addr: Word, value: Byte) {
+            let addr: u16 = addr.into();
+            self[addr as usize] = value.into()
+        }
+    }
+}
