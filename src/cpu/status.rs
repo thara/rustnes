@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn set() {
-        let mut a = CPUStatus::from(0b00100000);
+        let a = CPUStatus::from(0b00100000);
 
         a.set(CPUStatus::C);
         assert_eq!(a.raw_value, 0b00100001);
