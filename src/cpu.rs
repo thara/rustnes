@@ -80,9 +80,10 @@ impl CPU {
         self.s -= 1;
     }
 
-    pub(super) fn push_stack_word(&mut self, word: Word) {
-        self.push_stack((word >> 8).byte());
-        self.push_stack((word & 0xFF).byte());
+    pub(super) fn push_stack_word(&mut self, word: impl Into<Word>) {
+        let value = word.into();
+        self.push_stack((value >> 8).byte());
+        self.push_stack((value & 0xFF).byte());
     }
 
     pub(super) fn pull_stack(&mut self) -> Byte {
@@ -149,4 +150,81 @@ pub fn page_crossed<A: Into<i64>, B: Into<i64>>(value: A, from: B) -> bool {
     let a = value.into();
     let b = from.into();
     ((b + a) & 0xFF00) != (b & 0xFF00)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn new_cpu() -> CPU {
+        let test_mem: Box<dyn Memory> = Box::new([0; 0x10000]);
+        CPU::new(test_mem)
+    }
+
+    #[test]
+    fn fetch() {
+        let mut cpu = new_cpu();
+        cpu.write(0x9051.into(), 0x90.into());
+        cpu.write(0x9052.into(), 0x3F.into());
+        cpu.write(0x9053.into(), 0x81.into());
+        cpu.write(0x9054.into(), 0x90.into());
+
+        cpu.pc = 0x9052.into();
+
+        let instruction = cpu.fetch();
+        assert_eq!(instruction, 0x3F.into());
+
+        let instruction = cpu.fetch();
+        assert_eq!(instruction, 0x81.into());
+    }
+
+    #[test]
+    fn reset() {
+        let mut cpu = new_cpu();
+
+        cpu.a = 0xFA.into();
+        cpu.x = 0x1F.into();
+        cpu.y = 0x59.into();
+        cpu.s = 0x37.into();
+        cpu.p = CPUStatus::N | CPUStatus::V;
+        cpu.pc = 0b01010110_10001101.into();
+
+        cpu.write(0xFFFB.into(), 1.into());
+        cpu.write(0xFFFC.into(), 32.into());
+        cpu.write(0xFFFD.into(), 127.into());
+        cpu.write(0xFFFE.into(), 64.into());
+
+        cpu.reset();
+
+        assert_eq!(cpu.a, 0xFA.into());
+        assert_eq!(cpu.x, 0x1F.into());
+        assert_eq!(cpu.y, 0x59.into());
+        assert_eq!(cpu.s, 0x34.into());
+        assert_eq!(cpu.p, CPUStatus::N | CPUStatus::V | CPUStatus::I);
+        assert_eq!(cpu.pc, 0b01111111_00100000.into());
+    }
+
+    #[test]
+    fn stack() {
+        let mut cpu = new_cpu();
+        cpu.s = 0xFF.into();
+
+        cpu.push_stack(0x83);
+        cpu.push_stack(0x14);
+
+        assert_eq!(cpu.pull_stack(), 0x14.into());
+        assert_eq!(cpu.pull_stack(), 0x83.into());
+    }
+
+    #[test]
+    fn stack_word() {
+        let mut cpu = new_cpu();
+        cpu.s = 0xFF.into();
+
+        cpu.push_stack_word(0x98AF);
+        cpu.push_stack_word(0x003A);
+
+        assert_eq!(cpu.pull_stack_word(), 0x003A.into());
+        assert_eq!(cpu.pull_stack_word(), 0x98AF.into());
+    }
 }

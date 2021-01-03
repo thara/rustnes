@@ -2,7 +2,7 @@ use std::ops;
 
 use crate::types::Byte;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct CPUStatus {
     raw_value: u8,
 }
