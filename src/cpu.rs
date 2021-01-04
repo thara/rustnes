@@ -1,11 +1,13 @@
 mod addressing_modes;
 mod instructions;
 mod status;
+mod trace;
 
 use crate::types::{Byte, Memory, Word};
 
 use instructions::{decode, execute};
 use status::CPUStatus;
+pub use trace::Trace;
 
 pub type CPUCycle = u128;
 
@@ -35,6 +37,7 @@ impl CPU {
             bus: cpu_bus,
         }
     }
+
     pub fn step(&mut self) {
         let instruction = self.fetch();
         let opcode = decode(instruction);

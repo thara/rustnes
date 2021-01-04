@@ -292,6 +292,15 @@ impl ops::Add<u16> for Word {
     }
 }
 
+impl ops::Add<Byte> for Word {
+    type Output = Self;
+
+    fn add(self, Byte(rhs): Byte) -> Self {
+        let Self(v) = self;
+        Self(v.wrapping_add(rhs.into()))
+    }
+}
+
 impl ops::AddAssign for Word {
     fn add_assign(&mut self, Self(other): Self) {
         let Self(v) = self;

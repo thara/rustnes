@@ -5,6 +5,7 @@ use super::{page_crossed, CPU};
 pub type Operand = Word;
 
 // http://wiki.nesdev.com/w/index.php/CPU_addressing_modes
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum AddressingMode {
     Implicit,
     Accumulator,

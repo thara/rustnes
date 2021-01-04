@@ -5,6 +5,7 @@ use super::status::CPUStatus;
 use super::{page_crossed, CPU};
 
 // http://obelisk.me.uk/6502/reference.html
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Mnemonic {
     // Load/Store Operations
     LDA,
@@ -84,9 +85,10 @@ pub enum Mnemonic {
     RRA,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Opcode {
-    mnemonic: Mnemonic,
-    addressing_mode: AddressingMode,
+    pub(super) mnemonic: Mnemonic,
+    pub(super) addressing_mode: AddressingMode,
 }
 
 pub fn decode(opcode: Byte) -> Opcode {

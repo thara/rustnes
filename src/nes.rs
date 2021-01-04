@@ -1,4 +1,4 @@
-use crate::cpu::{CPUCycle, CPU};
+use crate::cpu::{CPUCycle, Trace, CPU};
 use crate::interrupt::Interrupt;
 use crate::memory_map::CPUBus;
 use crate::rom::ROM;
@@ -23,6 +23,38 @@ impl NES {
     pub fn cpu_step(&mut self) -> CPUCycle {
         let before = self.cpu.cycles;
 
+        self.handle_interrupt();
+        self.cpu.step();
+
+        let after = self.cpu.cycles;
+        if before <= after {
+            after.wrapping_add(before)
+        } else {
+            u128::MAX - before + after
+        }
+    }
+
+    pub fn power_on(&mut self) {
+        self.cpu.a = 0x00.into();
+        self.cpu.x = 0x00.into();
+        self.cpu.y = 0x00.into();
+        self.cpu.s = 0xFD.into();
+        self.cpu.p = 0x34.into();
+    }
+
+    pub fn reset(&mut self) {
+        self.interrupt.set(Interrupt::RESET)
+    }
+
+    pub fn load(&mut self, rom: ROM) {
+        let cpu_bus = Box::new(CPUBus::new(rom.mapper));
+        *self = Self {
+            cpu: CPU::new(cpu_bus),
+            interrupt: Interrupt::NO_INTERRUPT,
+        }
+    }
+
+    fn handle_interrupt(&mut self) {
         let interrupt = self.interrupt.get();
         match interrupt {
             Interrupt::RESET => {
@@ -45,26 +77,32 @@ impl NES {
                     self.interrupt.unset(interrupt)
                 }
             }
-            _ => self.cpu.step(),
-        }
-
-        let after = self.cpu.cycles;
-        if before <= after {
-            after.wrapping_add(before)
-        } else {
-            u128::MAX - before + after
+            _ => {}
         }
     }
+}
 
-    pub fn reset(&mut self) {
-        self.interrupt.set(Interrupt::RESET)
-    }
+// nestest
+impl NES {
+    pub fn nestest(&mut self) {
+        self.cpu.cycles = 7;
+        self.cpu.pc = 0xC000.into();
+        // https://wiki.nesdev.com/w/index.php/CPU_power_up_state#cite_ref-1
+        self.cpu.p = 0x24.into();
 
-    pub fn load(&mut self, rom: ROM) {
-        let cpu_bus = Box::new(CPUBus::new(rom.mapper));
-        *self = Self {
-            cpu: CPU::new(cpu_bus),
-            interrupt: Interrupt::NO_INTERRUPT,
+        loop {
+            self.handle_interrupt();
+
+            let cycles = self.cpu.cycles;
+
+            let trace = Trace::new(&self.cpu);
+            self.cpu.step();
+
+            println!("{} CYC: {}", trace.to_string(&self.cpu), cycles);
+
+            if 26554 < self.cpu.cycles {
+                break;
+            }
         }
     }
 }
