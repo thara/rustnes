@@ -31,7 +31,7 @@ impl NESFile {
             return Err(From::from(NESFileError::InvalidHeader));
         }
 
-        b.seek(SeekFrom::Start(42))?;
+        b.seek(SeekFrom::Start(0))?;
 
         let mut row_data = Vec::new();
         b.read_to_end(&mut row_data)?;

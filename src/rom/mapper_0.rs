@@ -13,7 +13,7 @@ pub struct Mapper0 {
 impl Mapper0 {
     pub fn new(rom: NESFile) -> Self {
         let (prg, next) = rom.read_prg_rom(NESFileHeader::SIZE, 0x4000);
-        let chr = if let Some((prg, _)) = rom.read_chr_rom(next, 0x4000) {
+        let chr = if let Some((prg, _)) = rom.read_chr_rom(next, 0x2000) {
             prg
         } else {
             [0; 0x2000].into()
