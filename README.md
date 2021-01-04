@@ -13,6 +13,10 @@ NES Emulator that is written in Rust
 - [ ] PPU
 - [ ] APU
 
+## License
+
+[GNU Lesser General Public License v2.1](./LICENSE)
+
 ## Author
 
 [thara](https://thara.jp)
