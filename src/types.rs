@@ -1,6 +1,12 @@
 use std::cmp::Ordering;
 use std::ops;
 
+#[derive(Copy, Clone)]
+pub enum Mirroring {
+    Vertical(),
+    Horizontal(),
+}
+
 pub trait Memory {
     fn read(&self, addr: Word) -> Byte;
     fn write(&mut self, addr: Word, value: Byte);

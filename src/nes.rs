@@ -1,7 +1,7 @@
 use crate::cpu::{CPUCycle, CPU};
 use crate::interrupt::Interrupt;
 use crate::memory_map::CPUBus;
-use crate::types::Memory;
+use crate::rom::ROM;
 
 pub struct NES {
     cpu: CPU,
@@ -11,7 +11,7 @@ pub struct NES {
 
 impl Default for NES {
     fn default() -> Self {
-        let cpu_bus: Box<dyn Memory> = Box::new(CPUBus::new());
+        let cpu_bus = Box::new([0; 0x10000]);
         Self {
             cpu: CPU::new(cpu_bus),
             interrupt: Interrupt::NO_INTERRUPT,
@@ -58,5 +58,13 @@ impl NES {
 
     pub fn reset(&mut self) {
         self.interrupt.set(Interrupt::RESET)
+    }
+
+    pub fn load(&mut self, rom: ROM) {
+        let cpu_bus = Box::new(CPUBus::new(rom.mapper));
+        *self = Self {
+            cpu: CPU::new(cpu_bus),
+            interrupt: Interrupt::NO_INTERRUPT,
+        }
     }
 }
