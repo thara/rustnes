@@ -9,7 +9,7 @@ NES Emulator that is written in Rust
 
 - [x] CPU
 - [x] ROM
-- [ ] Run nestest
+- [x] Run nestest
 - [ ] PPU
 - [ ] APU
 
