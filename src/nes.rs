@@ -112,6 +112,7 @@ mod tests {
     use std::io::{self, BufRead};
 
     #[test]
+    #[cfg_attr(not(feature = "nestest"), ignore)]
     fn nestest() {
         let rom = ROM::load("nestest.nes").unwrap();
 
