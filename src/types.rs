@@ -12,7 +12,7 @@ pub trait Memory {
     fn write(&mut self, addr: Word, value: Byte);
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Byte(u8);
 
 impl Byte {
@@ -247,8 +247,14 @@ impl ops::ShrAssign<u8> for Byte {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Word(u16);
+
+impl From<u8> for Word {
+    fn from(value: u8) -> Self {
+        Self(value as u16)
+    }
+}
 
 impl From<u16> for Word {
     fn from(value: u16) -> Self {
@@ -385,5 +391,23 @@ impl ops::BitOr for Word {
     fn bitor(self, Self(rhs): Word) -> Self::Output {
         let Self(v) = self;
         Self(v | rhs)
+    }
+}
+
+impl ops::BitOr<u16> for Word {
+    type Output = Self;
+
+    fn bitor(self, rhs: u16) -> Self::Output {
+        let Self(v) = self;
+        Self(v | rhs)
+    }
+}
+
+impl ops::BitXor<u16> for Word {
+    type Output = Self;
+
+    fn bitxor(self, rhs: u16) -> Self::Output {
+        let Self(v) = self;
+        Self(v ^ rhs)
     }
 }

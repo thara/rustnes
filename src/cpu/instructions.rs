@@ -893,7 +893,7 @@ fn brk(cpu: &mut CPU) {
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
     cpu.push_stack(cpu.p | CPUStatus::INTERRUPTED_B);
     cpu.cycles += 1;
-    cpu.pc = cpu.read_word(0xFFFE)
+    cpu.pc = cpu.read_word(0xFFFEu16);
 }
 
 // No OPeration

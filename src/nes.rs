@@ -86,7 +86,7 @@ impl NES {
 impl NES {
     pub fn nestest<F: FnMut(&Trace)>(&mut self, mut f: F) {
         self.cpu.cycles = 7;
-        self.cpu.pc = 0xC000.into();
+        self.cpu.pc = 0xC000u16.into();
         // https://wiki.nesdev.com/w/index.php/CPU_power_up_state#cite_ref-1
         self.cpu.p = 0x24.into();
 

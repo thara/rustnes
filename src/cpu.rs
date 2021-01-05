@@ -32,7 +32,7 @@ impl CPU {
             y: 0x00.into(),
             s: 0x00.into(),
             p: CPUStatus::from(0),
-            pc: 0x00.into(),
+            pc: 0x00u16.into(),
             cycles: 0,
             bus: cpu_bus,
         }
@@ -109,7 +109,7 @@ impl CPU {
 
     pub fn reset(&mut self) {
         self.cycles += 5;
-        self.pc = self.read_word(0xFFFC);
+        self.pc = self.read_word(0xFFFCu16);
         self.p.set(CPUStatus::I);
         self.s -= 3
     }
@@ -122,7 +122,7 @@ impl CPU {
         // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
         self.push_stack(self.p | CPUStatus::INTERRUPTED_B);
         self.p.set(CPUStatus::I);
-        self.pc = self.read_word(0xFFFA)
+        self.pc = self.read_word(0xFFFAu16)
     }
 
     // IRQ
@@ -133,7 +133,7 @@ impl CPU {
         // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
         self.push_stack(self.p | CPUStatus::INTERRUPTED_B);
         self.p.set(CPUStatus::I);
-        self.pc = self.read_word(0xFFFE)
+        self.pc = self.read_word(0xFFFEu16)
     }
 
     // BRK
@@ -145,7 +145,7 @@ impl CPU {
         // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
         self.push_stack(self.p | CPUStatus::INTERRUPTED_B);
         self.p.set(CPUStatus::I);
-        self.pc = self.read_word(0xFFFE)
+        self.pc = self.read_word(0xFFFEu16)
     }
 }
 
