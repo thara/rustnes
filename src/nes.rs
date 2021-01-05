@@ -84,7 +84,7 @@ impl NES {
 
 // nestest
 impl NES {
-    pub fn nestest(&mut self) {
+    pub fn nestest<F: FnMut(&Trace)>(&mut self, mut f: F) {
         self.cpu.cycles = 7;
         self.cpu.pc = 0xC000.into();
         // https://wiki.nesdev.com/w/index.php/CPU_power_up_state#cite_ref-1
@@ -93,18 +93,38 @@ impl NES {
         loop {
             self.handle_interrupt();
 
-            let cycles = self.cpu.cycles;
-
-            let trace = Trace::new(&self.cpu);
-            let trace_log = trace.to_string(&self.cpu);
+            let trace = Trace::trace(&self.cpu);
+            f(&trace);
 
             self.cpu.step();
-
-            println!("{} CYC: {}", trace_log, cycles);
 
             if 26554 < self.cpu.cycles {
                 break;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::{self, BufRead};
+
+    #[test]
+    fn nestest() {
+        let rom = ROM::load("nestest.nes").unwrap();
+
+        let mut nes = NES::default();
+        nes.load(rom);
+        nes.power_on();
+
+        let file = File::open("nestest-cpu.log").unwrap();
+        let mut lines = io::BufReader::new(file).lines();
+
+        nes.nestest(|trace| {
+            let line = lines.next().unwrap().unwrap();
+            assert_eq!(format!("{}", trace), line);
+        });
     }
 }

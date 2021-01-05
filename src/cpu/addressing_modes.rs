@@ -58,8 +58,11 @@ impl AddressingMode {
                 let data = cpu.read_word(cpu.pc);
                 let operand = data + Word::from(cpu.x);
                 cpu.pc += 2;
-                cpu.cycles += 1;
-                if *penalty && page_crossed_u16(cpu.x, data) {
+                if *penalty {
+                    if page_crossed_u16(cpu.x, data) {
+                        cpu.cycles += 1;
+                    }
+                } else {
                     cpu.cycles += 1;
                 }
                 operand
@@ -68,8 +71,11 @@ impl AddressingMode {
                 let data = cpu.read_word(cpu.pc);
                 let operand = data + Word::from(cpu.y);
                 cpu.pc += 2;
-                cpu.cycles += 1;
-                if *penalty && page_crossed_u16(cpu.y, data) {
+                if *penalty {
+                    if page_crossed_u16(cpu.y, data) {
+                        cpu.cycles += 1;
+                    }
+                } else {
                     cpu.cycles += 1;
                 }
                 operand

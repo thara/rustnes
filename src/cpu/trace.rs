@@ -6,7 +6,7 @@ use super::addressing_modes::AddressingMode;
 use super::instructions::{decode, Mnemonic, Opcode};
 use super::{CPUCycle, CPU};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Trace {
     pc: Word,
     operation: Byte,
@@ -20,12 +20,14 @@ pub struct Trace {
     cycle: CPUCycle,
 
     opcode: Opcode,
+    assembly_code: String,
 }
 
 impl Trace {
-    pub fn new(cpu: &CPU) -> Self {
+    pub fn trace(cpu: &CPU) -> Self {
         let instruction = cpu.bus.read(cpu.pc);
         let opcode = decode(instruction);
+        let assembly_code = to_assembly_code(instruction, opcode, &cpu);
         Self {
             pc: cpu.pc,
             operation: cpu.bus.read(cpu.pc),
@@ -38,10 +40,13 @@ impl Trace {
             p: cpu.p.into(),
             cycle: cpu.cycles,
             opcode,
+            assembly_code,
         }
     }
+}
 
-    pub fn to_string(&self, cpu: &CPU) -> String {
+impl fmt::Display for Trace {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let len = self.opcode.addressing_mode.instruction_length();
         let machine_code = match len {
             3 => format!(
@@ -51,133 +56,144 @@ impl Trace {
             2 => format!("{:02X} {:02X}   ", self.operation, self.operand_1),
             _ => format!("{:02X}      ", self.operation),
         };
-        let register = format!(
-            "A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X}",
-            self.a, self.x, self.y, self.p, self.sp
-        );
-        format!(
-            "{:04X}  {} {}{}",
+        write!(
+            f,
+            "{:04X}  {} {}A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X} CYC:{}",
             self.pc,
             machine_code,
-            self.to_assembly_code(cpu),
-            register
+            self.assembly_code,
+            self.a,
+            self.x,
+            self.y,
+            self.p,
+            self.sp,
+            self.cycle
         )
     }
+}
 
-    fn to_assembly_code(&self, cpu: &CPU) -> String {
-        let name = self.opcode.mnemonic.to_string();
-        let prefix = if UNDOCUMENTED_OPCODES.contains(&self.operation.u8()) {
-            "*"
-        } else {
-            " "
-        };
+impl CPU {
+    fn operand_1(&self) -> Byte {
+        self.bus.read(self.pc + 1)
+    }
 
-        let operand = match (self.opcode.mnemonic, self.opcode.addressing_mode) {
-            (Mnemonic::JMP, AddressingMode::Absolute)
-            | (Mnemonic::JSR, AddressingMode::Absolute) => format!(
-                "${:4X}",
-                self.decode_address(self.opcode.addressing_mode, &cpu)
-            ),
-            (Mnemonic::LSR, AddressingMode::Accumulator)
-            | (Mnemonic::ASL, AddressingMode::Accumulator)
-            | (Mnemonic::ROR, AddressingMode::Accumulator)
-            | (Mnemonic::ROL, AddressingMode::Accumulator) => "A".to_string(),
-
-            (_, addressing_mode) => match addressing_mode {
-                AddressingMode::Implicit | AddressingMode::Accumulator => " ".to_string(),
-                AddressingMode::Immediate => format!("#${:02X}", self.operand_1),
-                AddressingMode::ZeroPage => format!(
-                    "${:02X} = {:02X}",
-                    self.operand_1,
-                    cpu.bus.read(self.decode_address(addressing_mode, &cpu))
-                ),
-                AddressingMode::ZeroPageX => format!(
-                    "${:02X},X @ {:02X} = {:02X}",
-                    self.operand_1,
-                    self.operand_1 + self.x,
-                    cpu.bus.read(self.decode_address(addressing_mode, &cpu))
-                ),
-                AddressingMode::ZeroPageY => format!(
-                    "${:02X},Y @ {:02X} = {:02X}",
-                    self.operand_1,
-                    self.operand_1 + self.y,
-                    cpu.bus.read(self.decode_address(addressing_mode, &cpu))
-                ),
-                AddressingMode::Absolute => format!(
-                    "${:04X} = {:02X}",
-                    self.operand_16(),
-                    cpu.bus.read(self.decode_address(addressing_mode, &cpu))
-                ),
-                AddressingMode::AbsoluteX { .. } => format!(
-                    "${:04X},X @ {:04X} = {:02X}",
-                    self.operand_16(),
-                    self.operand_16() + self.x,
-                    cpu.bus.read(self.decode_address(addressing_mode, &cpu))
-                ),
-                AddressingMode::AbsoluteY { .. } => format!(
-                    "${:04X},Y @ {:04X} = {:02X}",
-                    self.operand_16(),
-                    self.operand_16() + self.y,
-                    cpu.bus.read(self.decode_address(addressing_mode, &cpu))
-                ),
-                AddressingMode::Relative => {
-                    let pc = <Word as Into<i16>>::into(self.pc);
-                    let offset = <Byte as Into<i8>>::into(self.operand_1);
-                    format!("${:04X}", pc.wrapping_add(2).wrapping_add(offset as i16))
-                }
-                AddressingMode::Indirect => format!(
-                    "(${:04X}) = {:04X}",
-                    self.operand_16(),
-                    cpu.bus.read_on_indirect(self.operand_16())
-                ),
-                AddressingMode::IndexedIndirect => {
-                    let operand_x = self.operand_1 + self.x;
-                    let addr = cpu.bus.read_on_indirect(operand_x.into());
-                    format!(
-                        "(${:02X},X) @ {:02X} = {:04X} = {:02X}",
-                        self.operand_1,
-                        operand_x,
-                        addr,
-                        cpu.bus.read(addr)
-                    )
-                }
-                AddressingMode::IndirectIndexed => {
-                    let addr = cpu.bus.read_on_indirect(self.operand_1.into());
-                    format!(
-                        "(${:02X}),Y = {:04X} @ {:04X} = {:02X}",
-                        self.operand_1,
-                        addr,
-                        addr + self.y,
-                        cpu.bus.read(addr + self.y)
-                    )
-                }
-            },
-        };
-        format!("{}{} {:<28}", prefix, name, operand)
+    fn operand_2(&self) -> Byte {
+        self.bus.read(self.pc + 2)
     }
 
     fn operand_16(&self) -> Word {
-        <Byte as Into<Word>>::into(self.operand_1) | <Byte as Into<Word>>::into(self.operand_2) << 8
+        <Byte as Into<Word>>::into(self.operand_1())
+            | <Byte as Into<Word>>::into(self.operand_2()) << 8
     }
+}
 
-    fn decode_address(&self, addressing_mode: AddressingMode, cpu: &CPU) -> Word {
-        match addressing_mode {
-            AddressingMode::Implicit => 0x00.into(),
-            AddressingMode::Immediate => self.pc,
-            AddressingMode::ZeroPage => self.operand_1.into(),
-            AddressingMode::ZeroPageX => <Byte as Into<Word>>::into(self.operand_1 + self.x) & 0xFF,
-            AddressingMode::ZeroPageY => <Byte as Into<Word>>::into(self.operand_1 + self.y) & 0xFF,
-            AddressingMode::Absolute => self.operand_16(),
-            AddressingMode::AbsoluteX { .. } => self.operand_16() + self.x,
-            AddressingMode::AbsoluteY { .. } => self.operand_16() + self.y,
-            AddressingMode::Relative => self.pc,
-            AddressingMode::Indirect => cpu.bus.read_on_indirect(self.operand_16()),
-            AddressingMode::IndexedIndirect => cpu
-                .bus
-                .read_on_indirect((self.operand_16() + self.x) & 0xFF),
-            AddressingMode::IndirectIndexed => cpu.bus.read_on_indirect(self.operand_16()) + self.y,
-            _ => 0x00.into(),
+fn to_assembly_code(operation: Byte, opcode: Opcode, cpu: &CPU) -> String {
+    let name = opcode.mnemonic.to_string();
+    let prefix = if UNDOCUMENTED_OPCODES.contains(&operation.u8()) {
+        "*"
+    } else {
+        " "
+    };
+
+    let operand = match (opcode.mnemonic, opcode.addressing_mode) {
+        (Mnemonic::JMP, AddressingMode::Absolute) | (Mnemonic::JSR, AddressingMode::Absolute) => {
+            format!("${:4X}", decode_address(opcode.addressing_mode, &cpu))
         }
+        (Mnemonic::LSR, AddressingMode::Accumulator)
+        | (Mnemonic::ASL, AddressingMode::Accumulator)
+        | (Mnemonic::ROR, AddressingMode::Accumulator)
+        | (Mnemonic::ROL, AddressingMode::Accumulator) => "A".to_string(),
+
+        (_, addressing_mode) => match addressing_mode {
+            AddressingMode::Implicit | AddressingMode::Accumulator => " ".to_string(),
+            AddressingMode::Immediate => format!("#${:02X}", cpu.operand_1()),
+            AddressingMode::ZeroPage => format!(
+                "${:02X} = {:02X}",
+                cpu.operand_1(),
+                cpu.bus.read(decode_address(addressing_mode, &cpu))
+            ),
+            AddressingMode::ZeroPageX => format!(
+                "${:02X},X @ {:02X} = {:02X}",
+                cpu.operand_1(),
+                cpu.operand_1() + cpu.x,
+                cpu.bus.read(decode_address(addressing_mode, &cpu))
+            ),
+            AddressingMode::ZeroPageY => format!(
+                "${:02X},Y @ {:02X} = {:02X}",
+                cpu.operand_1(),
+                cpu.operand_1() + cpu.y,
+                cpu.bus.read(decode_address(addressing_mode, &cpu))
+            ),
+            AddressingMode::Absolute => format!(
+                "${:04X} = {:02X}",
+                cpu.operand_16(),
+                cpu.bus.read(decode_address(addressing_mode, &cpu))
+            ),
+            AddressingMode::AbsoluteX { .. } => format!(
+                "${:04X},X @ {:04X} = {:02X}",
+                cpu.operand_16(),
+                cpu.operand_16() + cpu.x,
+                cpu.bus.read(decode_address(addressing_mode, &cpu))
+            ),
+            AddressingMode::AbsoluteY { .. } => format!(
+                "${:04X},Y @ {:04X} = {:02X}",
+                cpu.operand_16(),
+                cpu.operand_16() + cpu.y,
+                cpu.bus.read(decode_address(addressing_mode, &cpu))
+            ),
+            AddressingMode::Relative => {
+                let pc = <Word as Into<i16>>::into(cpu.pc);
+                let offset = <Byte as Into<i8>>::into(cpu.operand_1());
+                format!("${:04X}", pc.wrapping_add(2).wrapping_add(offset as i16))
+            }
+            AddressingMode::Indirect => format!(
+                "(${:04X}) = {:04X}",
+                cpu.operand_16(),
+                cpu.bus.read_on_indirect(cpu.operand_16())
+            ),
+            AddressingMode::IndexedIndirect => {
+                let operand_x = cpu.operand_1() + cpu.x;
+                let addr = cpu.bus.read_on_indirect(operand_x.into());
+                format!(
+                    "(${:02X},X) @ {:02X} = {:04X} = {:02X}",
+                    cpu.operand_1(),
+                    operand_x,
+                    addr,
+                    cpu.bus.read(addr)
+                )
+            }
+            AddressingMode::IndirectIndexed => {
+                let addr = cpu.bus.read_on_indirect(cpu.operand_1().into());
+                format!(
+                    "(${:02X}),Y = {:04X} @ {:04X} = {:02X}",
+                    cpu.operand_1(),
+                    addr,
+                    addr + cpu.y,
+                    cpu.bus.read(addr + cpu.y)
+                )
+            }
+        },
+    };
+    format!("{}{} {:<28}", prefix, name, operand)
+}
+
+fn decode_address(addressing_mode: AddressingMode, cpu: &CPU) -> Word {
+    match addressing_mode {
+        AddressingMode::Implicit => 0x00.into(),
+        AddressingMode::Immediate => cpu.pc,
+        AddressingMode::ZeroPage => cpu.operand_1().into(),
+        AddressingMode::ZeroPageX => <Byte as Into<Word>>::into(cpu.operand_1() + cpu.x) & 0xFF,
+        AddressingMode::ZeroPageY => <Byte as Into<Word>>::into(cpu.operand_1() + cpu.y) & 0xFF,
+        AddressingMode::Absolute => cpu.operand_16(),
+        AddressingMode::AbsoluteX { .. } => cpu.operand_16() + cpu.x,
+        AddressingMode::AbsoluteY { .. } => cpu.operand_16() + cpu.y,
+        AddressingMode::Relative => cpu.pc,
+        AddressingMode::Indirect => cpu.bus.read_on_indirect(cpu.operand_16()),
+        AddressingMode::IndexedIndirect => {
+            cpu.bus.read_on_indirect((cpu.operand_16() + cpu.x) & 0xFF)
+        }
+        AddressingMode::IndirectIndexed => cpu.bus.read_on_indirect(cpu.operand_16()) + cpu.y,
+        _ => 0x00.into(),
     }
 }
 

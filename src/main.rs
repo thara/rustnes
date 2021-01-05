@@ -8,7 +8,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     nes.power_on();
 
-    nes.nestest();
+    nes.nestest(|trace| {
+        println!("{}", trace);
+    });
 
     Ok(())
 }
