@@ -341,19 +341,23 @@ pub fn execute(cpu: &mut CPU, opcode: Opcode) {
         (Mnemonic::LDA, _) => lda(cpu, operand),
         (Mnemonic::LDX, _) => ldx(cpu, operand),
         (Mnemonic::LDY, _) => ldy(cpu, operand),
+        (Mnemonic::STA, AddressingMode::IndirectIndexed) => {
+            sta(cpu, operand);
+            cpu.cycles += 1;
+        }
         (Mnemonic::STA, _) => sta(cpu, operand),
         (Mnemonic::STX, _) => stx(cpu, operand),
         (Mnemonic::STY, _) => sty(cpu, operand),
-        (Mnemonic::TAX, _) => tax(cpu, operand),
-        (Mnemonic::TSX, _) => tsx(cpu, operand),
-        (Mnemonic::TAY, _) => tay(cpu, operand),
-        (Mnemonic::TXA, _) => txa(cpu, operand),
-        (Mnemonic::TXS, _) => txs(cpu, operand),
-        (Mnemonic::TYA, _) => tya(cpu, operand),
-        (Mnemonic::PHA, _) => pha(cpu, operand),
-        (Mnemonic::PHP, _) => php(cpu, operand),
-        (Mnemonic::PLA, _) => pla(cpu, operand),
-        (Mnemonic::PLP, _) => plp(cpu, operand),
+        (Mnemonic::TAX, _) => tax(cpu),
+        (Mnemonic::TSX, _) => tsx(cpu),
+        (Mnemonic::TAY, _) => tay(cpu),
+        (Mnemonic::TXA, _) => txa(cpu),
+        (Mnemonic::TXS, _) => txs(cpu),
+        (Mnemonic::TYA, _) => tya(cpu),
+        (Mnemonic::PHA, _) => pha(cpu),
+        (Mnemonic::PHP, _) => php(cpu),
+        (Mnemonic::PLA, _) => pla(cpu),
+        (Mnemonic::PLP, _) => plp(cpu),
         (Mnemonic::AND, _) => and(cpu, operand),
         (Mnemonic::EOR, _) => eor(cpu, operand),
         (Mnemonic::ORA, _) => ora(cpu, operand),
@@ -443,54 +447,54 @@ fn sty(cpu: &mut CPU, operand: Operand) {
 }
 
 // Transfer Accumulator to X
-fn tax(cpu: &mut CPU, _operand: Operand) {
+fn tax(cpu: &mut CPU) {
     cpu.x = cpu.a;
     cpu.p.update_zn(cpu.x);
     cpu.cycles += 1;
 }
 
 // Transfer Stack pointer to X
-fn tsx(cpu: &mut CPU, _operand: Operand) {
+fn tsx(cpu: &mut CPU) {
     cpu.x = cpu.s;
     cpu.p.update_zn(cpu.x);
     cpu.cycles += 1;
 }
 
 // Transfer Accumulator to Y
-fn tay(cpu: &mut CPU, _operand: Operand) {
-    cpu.y = cpu.s;
+fn tay(cpu: &mut CPU) {
+    cpu.y = cpu.a;
     cpu.p.update_zn(cpu.y);
     cpu.cycles += 1;
 }
 
 // Transfer X to Accumulator
-fn txa(cpu: &mut CPU, _operand: Operand) {
+fn txa(cpu: &mut CPU) {
     cpu.a = cpu.x;
     cpu.p.update_zn(cpu.a);
     cpu.cycles += 1;
 }
 
 // Transfer X to Stack pointer
-fn txs(cpu: &mut CPU, _operand: Operand) {
+fn txs(cpu: &mut CPU) {
     cpu.s = cpu.x;
     cpu.cycles += 1;
 }
 
 // Transfer Y to Accumulator
-fn tya(cpu: &mut CPU, _operand: Operand) {
+fn tya(cpu: &mut CPU) {
     cpu.a = cpu.y;
     cpu.p.update_zn(cpu.a);
     cpu.cycles += 1;
 }
 
 // PusH Accumulator
-fn pha(cpu: &mut CPU, _operand: Operand) {
+fn pha(cpu: &mut CPU) {
     cpu.push_stack(cpu.a);
     cpu.cycles += 1;
 }
 
 // PusH Processor status
-fn php(cpu: &mut CPU, _operand: Operand) {
+fn php(cpu: &mut CPU) {
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
     cpu.push_stack(cpu.p | CPUStatus::OPERATED_B);
@@ -498,14 +502,14 @@ fn php(cpu: &mut CPU, _operand: Operand) {
 }
 
 // PulL Accumulator
-fn pla(cpu: &mut CPU, _operand: Operand) {
+fn pla(cpu: &mut CPU) {
     cpu.a = cpu.pull_stack();
     cpu.p.update_zn(cpu.a);
     cpu.cycles += 2;
 }
 
 // PulL Processor status
-fn plp(cpu: &mut CPU, _operand: Operand) {
+fn plp(cpu: &mut CPU) {
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
     // http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit
     cpu.p = CPUStatus::from(cpu.pull_stack()) & !CPUStatus::B | CPUStatus::R;
@@ -538,8 +542,8 @@ fn bit(cpu: &mut CPU, operand: Operand) {
     let value = cpu.read(operand);
     let data = cpu.a & value;
     cpu.p.update(CPUStatus::Z, data.u8() == 0);
-    cpu.p.update(CPUStatus::V, data.is_set(6));
-    cpu.p.update(CPUStatus::N, data.is_set(7));
+    cpu.p.update(CPUStatus::V, value.nth(6) == 1);
+    cpu.p.update(CPUStatus::N, value.nth(7) == 1);
 }
 
 // ADd with Carry
@@ -552,21 +556,14 @@ fn adc(cpu: &mut CPU, operand: Operand) {
         result += 1;
     }
 
-    cpu.p
-        .unset(CPUStatus::C | CPUStatus::Z | CPUStatus::V | CPUStatus::N);
-
     // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
-    let a7 = a & 0x80;
-    let v7 = val & 0x80;
-    let c6 = a7 ^ v7 ^ (result & 0x80);
+    let a7 = a.nth(7);
+    let v7 = val.nth(7);
+    let c6 = a7 ^ v7 ^ result.nth(7);
     let c7 = (a7 & v7) | (a7 & c6) | (v7 & c6);
 
-    if c7.u8() == 1 {
-        cpu.p.set(CPUStatus::C)
-    }
-    if (c6 ^ c7).u8() == 1 {
-        cpu.p.set(CPUStatus::V)
-    }
+    cpu.p.update(CPUStatus::C, c7 == 1);
+    cpu.p.update(CPUStatus::V, (c6 ^ c7) == 1);
 
     cpu.a = result;
     cpu.p.update_zn(cpu.a)
@@ -582,21 +579,14 @@ fn sbc(cpu: &mut CPU, operand: Operand) {
         result += 1;
     }
 
-    cpu.p
-        .unset(CPUStatus::C | CPUStatus::Z | CPUStatus::V | CPUStatus::N);
-
     // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
-    let a7 = a & 0x80;
-    let v7 = val & 0x80;
-    let c6 = a7 ^ v7 ^ (result & 0x80);
+    let a7 = a.nth(7);
+    let v7 = val.nth(7);
+    let c6 = a7 ^ v7 ^ result.nth(7);
     let c7 = (a7 & v7) | (a7 & c6) | (v7 & c6);
 
-    if c7.u8() == 1 {
-        cpu.p.set(CPUStatus::C)
-    }
-    if (c6 ^ c7).u8() == 1 {
-        cpu.p.set(CPUStatus::V)
-    }
+    cpu.p.update(CPUStatus::C, c7 == 1);
+    cpu.p.update(CPUStatus::V, (c6 ^ c7) == 1);
 
     cpu.a = result;
     cpu.p.update_zn(cpu.a)
@@ -605,10 +595,10 @@ fn sbc(cpu: &mut CPU, operand: Operand) {
 // CoMPare accumulator
 fn cmp(cpu: &mut CPU, operand: Operand) {
     let cmp = Word::from(cpu.a) - Word::from(cpu.read(operand));
+    let cmp_i16 = <Word as Into<i16>>::into(cmp);
 
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    cpu.p.update_zn(cmp.byte());
-    cpu.p.update(CPUStatus::C, 0 <= cmp.into())
+    cpu.p.update(CPUStatus::C, 0 <= cmp_i16);
+    cpu.p.update_zn(cmp_i16 as u16);
 }
 
 // ComPare X register
@@ -616,9 +606,8 @@ fn cpx(cpu: &mut CPU, operand: Operand) {
     let value = cpu.read(operand);
     let cmp = cpu.x - value;
 
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
+    cpu.p.update(CPUStatus::C, value <= cpu.x);
     cpu.p.update_zn(cmp);
-    cpu.p.update(CPUStatus::C, value <= cpu.x)
 }
 
 // ComPare Y register
@@ -626,9 +615,8 @@ fn cpy(cpu: &mut CPU, operand: Operand) {
     let value = cpu.read(operand);
     let cmp = cpu.y - value;
 
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
+    cpu.p.update(CPUStatus::C, value <= cpu.y);
     cpu.p.update_zn(cmp);
-    cpu.p.update(CPUStatus::C, value <= cpu.y)
 }
 
 // INCrement memory
@@ -681,24 +669,19 @@ fn dey(cpu: &mut CPU) {
 fn asl(cpu: &mut CPU, operand: Operand) {
     let mut data = cpu.read(operand);
 
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if data.is_set(7) {
-        cpu.p.set(CPUStatus::C);
-    }
-
+    cpu.p.update(CPUStatus::C, data.nth(7) == 1);
     data <<= 1;
     cpu.p.update_zn(data);
+
     cpu.write(operand, data);
     cpu.cycles += 1;
 }
 
 fn asl_for_accumelator(cpu: &mut CPU) {
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if cpu.a.is_set(7) {
-        cpu.p.set(CPUStatus::C);
-    }
+    cpu.p.update(CPUStatus::C, cpu.a.nth(7) == 1);
     cpu.a <<= 1;
     cpu.p.update_zn(cpu.a);
+
     cpu.cycles += 1;
 }
 
@@ -706,55 +689,46 @@ fn asl_for_accumelator(cpu: &mut CPU) {
 fn lsr(cpu: &mut CPU, operand: Operand) {
     let mut data = cpu.read(operand);
 
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if data.is_set(0) {
-        cpu.p.set(CPUStatus::C);
-    }
-
+    cpu.p.update(CPUStatus::C, data.nth(0) == 1);
     data >>= 1;
     cpu.p.update_zn(data);
+
     cpu.write(operand, data);
     cpu.cycles += 1;
 }
 
 fn lsr_for_accumelator(cpu: &mut CPU) {
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if cpu.a.is_set(0) {
-        cpu.p.set(CPUStatus::C);
-    }
+    cpu.p.update(CPUStatus::C, cpu.a.nth(0) == 1);
     cpu.a >>= 1;
     cpu.p.update_zn(cpu.a);
+
     cpu.cycles += 1;
 }
 
 // ROtate Left
 fn rol(cpu: &mut CPU, operand: Operand) {
     let mut data = cpu.read(operand);
-    let c = data & 0x80;
+    let c = data.nth(7);
 
     data <<= 1;
-    // C
     if cpu.p.is_set(CPUStatus::C) {
         data |= 0x01;
     }
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if c.u8() == 0x80 {
-        cpu.p.set(CPUStatus::C);
-    }
+    cpu.p.update(CPUStatus::C, c == 1);
     cpu.p.update_zn(data);
     cpu.write(operand, data);
     cpu.cycles += 1;
 }
 
 fn rol_for_accumelator(cpu: &mut CPU) {
-    let c = cpu.a & 0x80;
+    let c = cpu.a.nth(7);
 
-    let a = cpu.a << 1;
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if c.u8() == 0x80 {
-        cpu.p.set(CPUStatus::C);
+    let mut a = cpu.a << 1;
+    if cpu.p.is_set(CPUStatus::C) {
+        a |= 0x01;
     }
     cpu.a = a;
+    cpu.p.update(CPUStatus::C, c == 1);
     cpu.p.update_zn(cpu.a);
     cpu.cycles += 1;
 }
@@ -762,34 +736,27 @@ fn rol_for_accumelator(cpu: &mut CPU) {
 // ROtate Right
 fn ror(cpu: &mut CPU, operand: Operand) {
     let mut data = cpu.read(operand);
-    let c = data & 0x80;
+    let c = data.nth(0);
 
     data >>= 1;
-    // C
     if cpu.p.is_set(CPUStatus::C) {
         data |= 0x80;
     }
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if c.u8() == 1 {
-        cpu.p.set(CPUStatus::C);
-    }
+    cpu.p.update(CPUStatus::C, c == 1);
     cpu.p.update_zn(data);
     cpu.write(operand, data);
     cpu.cycles += 1;
 }
 
 fn ror_for_accumelator(cpu: &mut CPU) {
-    let c = cpu.a & 0x80;
+    let c = cpu.a.nth(0);
 
     let mut a = cpu.a >> 1;
     if cpu.p.is_set(CPUStatus::C) {
         a |= 0x80;
     }
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if c.u8() == 0x80 {
-        cpu.p.set(CPUStatus::C)
-    }
     cpu.a = a;
+    cpu.p.update(CPUStatus::C, c == 1);
     cpu.p.update_zn(cpu.a);
     cpu.cycles += 1;
 }
@@ -858,7 +825,7 @@ fn bne(cpu: &mut CPU, operand: Operand) {
 
 // Branch if PLus
 fn bpl(cpu: &mut CPU, operand: Operand) {
-    if cpu.p.is_set(CPUStatus::N) {
+    if !cpu.p.is_set(CPUStatus::N) {
         branch(cpu, operand)
     }
 }
@@ -936,10 +903,11 @@ fn nop(cpu: &mut CPU) {
 
 fn branch(cpu: &mut CPU, operand: Operand) {
     cpu.cycles += 1;
-    if page_crossed(operand, cpu.pc) {
+    let offset = <Word as Into<u16>>::into(operand) as i8;
+    if page_crossed(offset, cpu.pc) {
         cpu.cycles += 1;
     }
-    cpu.pc += operand
+    cpu.pc += offset as u16
 }
 
 // Load Accumulator and X register
@@ -976,11 +944,8 @@ fn isb(cpu: &mut CPU, operand: Operand) {
 // arithmetic Shift Left and bitwise Or with accumulator
 fn slo(cpu: &mut CPU, operand: Operand) {
     let mut data = cpu.read(operand);
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    if data.is_set(7) {
-        cpu.p.set(CPUStatus::C);
-    }
 
+    cpu.p.update(CPUStatus::C, data.nth(7) == 1);
     data <<= 1;
     cpu.p.update_zn(data);
     cpu.write(operand, data);
@@ -1012,13 +977,9 @@ fn sre(cpu: &mut CPU, operand: Operand) {
     // logicalShiftRight excluding tick
     let mut data = cpu.read(operand);
 
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    cpu.p.update(CPUStatus::C, data.is_set(0));
-
+    cpu.p.update(CPUStatus::C, data.nth(0) == 1);
     data >>= 1;
-
     cpu.p.update_zn(data);
-
     cpu.write(operand, data);
 
     eor(cpu, operand)
@@ -1028,14 +989,13 @@ fn sre(cpu: &mut CPU, operand: Operand) {
 fn rra(cpu: &mut CPU, operand: Operand) {
     // rotateRight excluding tick
     let mut data = cpu.read(operand);
-    let c = data & 0x80;
+    let c = data.nth(0);
 
     data >>= 1;
     if cpu.p.is_set(CPUStatus::C) {
         data |= 0x80
     }
-    cpu.p.unset(CPUStatus::C | CPUStatus::Z | CPUStatus::N);
-    cpu.p.update(CPUStatus::C, c.u8() == 1);
+    cpu.p.update(CPUStatus::C, c == 1);
     cpu.p.update_zn(data);
 
     cpu.write(operand, data);
@@ -1044,8 +1004,9 @@ fn rra(cpu: &mut CPU, operand: Operand) {
 }
 
 impl CPUStatus {
-    pub fn update_zn(&mut self, value: Byte) {
-        self.update(Self::Z, value.u8() == 0);
-        self.update(Self::N, value.bit(7) == 1);
+    pub fn update_zn(&mut self, value: impl Into<u16>) {
+        let v: u16 = value.into();
+        self.update(Self::Z, v == 0);
+        self.update(Self::N, (v >> 7) & 1 == 1);
     }
 }

@@ -149,10 +149,16 @@ impl CPU {
     }
 }
 
+fn page_crossed_u16<A: Into<u16>, B: Into<u16>>(value: A, from: B) -> bool {
+    let a = value.into();
+    let b = from.into();
+    (b.wrapping_add(a) & 0xFF00) != (b & 0xFF00)
+}
+
 pub fn page_crossed<A: Into<i64>, B: Into<i64>>(value: A, from: B) -> bool {
     let a = value.into();
     let b = from.into();
-    ((b + a) & 0xFF00) != (b & 0xFF00)
+    (b.wrapping_add(a) & 0xFF00) != (b & 0xFF00)
 }
 
 #[cfg(test)]

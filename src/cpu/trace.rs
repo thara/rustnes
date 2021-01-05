@@ -89,7 +89,7 @@ impl Trace {
                 AddressingMode::ZeroPage => format!(
                     "${:02X} = {:02X}",
                     self.operand_1,
-                    cpu.bus.read(self.operand_1.into())
+                    cpu.bus.read(self.decode_address(addressing_mode, &cpu))
                 ),
                 AddressingMode::ZeroPageX => format!(
                     "${:02X},X @ {:02X} = {:02X}",
@@ -104,7 +104,7 @@ impl Trace {
                     cpu.bus.read(self.decode_address(addressing_mode, &cpu))
                 ),
                 AddressingMode::Absolute => format!(
-                    "${:04X} = %{:02X}",
+                    "${:04X} = {:02X}",
                     self.operand_16(),
                     cpu.bus.read(self.decode_address(addressing_mode, &cpu))
                 ),
@@ -120,7 +120,11 @@ impl Trace {
                     self.operand_16() + self.y,
                     cpu.bus.read(self.decode_address(addressing_mode, &cpu))
                 ),
-                AddressingMode::Relative => format!("${:04X}", self.pc + 2 + self.operand_1),
+                AddressingMode::Relative => {
+                    let pc = <Word as Into<i16>>::into(self.pc);
+                    let offset = <Byte as Into<i8>>::into(self.operand_1);
+                    format!("${:04X}", pc.wrapping_add(2).wrapping_add(offset as i16))
+                }
                 AddressingMode::Indirect => format!(
                     "(${:04X}) = {:04X}",
                     self.operand_16(),

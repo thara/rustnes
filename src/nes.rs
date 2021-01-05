@@ -96,9 +96,11 @@ impl NES {
             let cycles = self.cpu.cycles;
 
             let trace = Trace::new(&self.cpu);
+            let trace_log = trace.to_string(&self.cpu);
+
             self.cpu.step();
 
-            println!("{} CYC: {}", trace.to_string(&self.cpu), cycles);
+            println!("{} CYC: {}", trace_log, cycles);
 
             if 26554 < self.cpu.cycles {
                 break;

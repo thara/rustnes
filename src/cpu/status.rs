@@ -149,4 +149,15 @@ mod tests {
         a.set(CPUStatus::N);
         assert_eq!(a.raw_value, 0b10100001);
     }
+
+    #[test]
+    fn unset() {
+        let mut a = CPUStatus::from(0b11111111);
+
+        a.unset(CPUStatus::C);
+        assert_eq!(a.raw_value, 0b11111110);
+
+        a.unset(CPUStatus::N);
+        assert_eq!(a.raw_value, 0b01111110);
+    }
 }

@@ -20,14 +20,9 @@ impl Byte {
         self.0
     }
 
-    pub fn bit(&self, n: u8) -> u8 {
+    pub fn nth(&self, n: u8) -> u8 {
         let Self(v) = self;
         (v >> n) & 1
-    }
-
-    pub fn is_set(&self, flag: u8) -> bool {
-        let Self(v) = self;
-        v & flag == flag
     }
 }
 
@@ -46,6 +41,24 @@ impl Into<u8> for Byte {
 impl Into<u16> for Byte {
     fn into(self) -> u16 {
         self.0 as u16
+    }
+}
+
+impl Into<i8> for Byte {
+    fn into(self) -> i8 {
+        self.0 as i8
+    }
+}
+
+impl Into<i16> for Byte {
+    fn into(self) -> i16 {
+        self.0 as i16
+    }
+}
+
+impl Into<i64> for Byte {
+    fn into(self) -> i64 {
+        self.0 as i64
     }
 }
 
@@ -252,6 +265,12 @@ impl From<Byte> for Word {
 impl Into<u16> for Word {
     fn into(self) -> u16 {
         self.0
+    }
+}
+
+impl Into<i16> for Word {
+    fn into(self) -> i16 {
+        self.0 as i16
     }
 }
 
