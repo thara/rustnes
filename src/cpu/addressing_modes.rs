@@ -25,7 +25,7 @@ pub enum AddressingMode {
 impl AddressingMode {
     pub fn get_operand(&self, cpu: &mut CPU) -> Operand {
         match self {
-            Self::Implicit => Word::from(0x00),
+            Self::Implicit => Word::from(0x00u16),
             Self::Accumulator => cpu.a.into(),
             Self::Immediate => {
                 let operand = cpu.pc;
@@ -141,8 +141,8 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::Implicit.get_operand(&mut cpu);
-        assert_eq!(operand, 0x00.into());
-        assert_eq!(cpu.pc - before, 0.into());
+        assert_eq!(operand, 0x00u16.into());
+        assert_eq!(cpu.pc - before, 0u16.into());
     }
 
     #[test]
@@ -152,8 +152,8 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::Accumulator.get_operand(&mut cpu);
-        assert_eq!(operand, 0xFA.into());
-        assert_eq!(cpu.pc - before, 0.into());
+        assert_eq!(operand, 0xFAu16.into());
+        assert_eq!(cpu.pc - before, 0u16.into());
     }
 
     #[test]
@@ -162,8 +162,8 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::Immediate.get_operand(&mut cpu);
-        assert_eq!(operand, 0x8234.into());
-        assert_eq!(cpu.pc - before, 1.into());
+        assert_eq!(operand, 0x8234u16.into());
+        assert_eq!(cpu.pc - before, 1u16.into());
     }
 
     #[test]
@@ -172,8 +172,8 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::ZeroPage.get_operand(&mut cpu);
-        assert_eq!(operand, 0x0090.into());
-        assert_eq!(cpu.pc - before, 1.into());
+        assert_eq!(operand, 0x0090u16.into());
+        assert_eq!(cpu.pc - before, 1u16.into());
     }
 
     #[test]
@@ -182,8 +182,8 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::ZeroPageX.get_operand(&mut cpu);
-        assert_eq!(operand, 0x0095.into()); // 0x90 + 0x05 & 0xFF
-        assert_eq!(cpu.pc - before, 1.into());
+        assert_eq!(operand, 0x0095u16.into()); // 0x90 + 0x05 & 0xFF
+        assert_eq!(cpu.pc - before, 1u16.into());
     }
 
     #[test]
@@ -192,8 +192,8 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::ZeroPageY.get_operand(&mut cpu);
-        assert_eq!(operand, 0x0010.into()); // (0x90 + 0x80) & 0xFF
-        assert_eq!(cpu.pc - before, 1.into());
+        assert_eq!(operand, 0x0010u16.into()); // (0x90 + 0x80) & 0xFF
+        assert_eq!(cpu.pc - before, 1u16.into());
     }
 
     #[test]
@@ -202,8 +202,8 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::Absolute.get_operand(&mut cpu);
-        assert_eq!(operand, 0x9490.into());
-        assert_eq!(cpu.pc - before, 2.into());
+        assert_eq!(operand, 0x9490u16.into());
+        assert_eq!(cpu.pc - before, 2u16.into());
     }
 
     #[test]
@@ -212,8 +212,8 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::AbsoluteX { penalty: false }.get_operand(&mut cpu);
-        assert_eq!(operand, 0x9495.into()); // 0x9490 + 0x05
-        assert_eq!(cpu.pc - before, 2.into());
+        assert_eq!(operand, 0x9495u16.into()); // 0x9490 + 0x05
+        assert_eq!(cpu.pc - before, 2u16.into());
     }
 
     #[test]
@@ -222,20 +222,20 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::AbsoluteY { penalty: false }.get_operand(&mut cpu);
-        assert_eq!(operand, 0x9510.into()); // 0x9490 + 0x80
-        assert_eq!(cpu.pc - before, 2.into());
+        assert_eq!(operand, 0x9510u16.into()); // 0x9490 + 0x80
+        assert_eq!(cpu.pc - before, 2u16.into());
     }
 
     #[test]
     fn relative() {
         let mut cpu = new_cpu();
-        cpu.pc = 0x0050.into();
-        cpu.write(0x0050.into(), 0x78.into());
+        cpu.pc = 0x0050u16.into();
+        cpu.write(0x0050u16.into(), 0x78.into());
 
         let before = cpu.pc;
         let operand = AddressingMode::Relative.get_operand(&mut cpu);
-        assert_eq!(operand, 0x78.into());
-        assert_eq!(cpu.pc - before, 1.into());
+        assert_eq!(operand, 0x78u16.into());
+        assert_eq!(cpu.pc - before, 1u16.into());
     }
 
     #[test]
@@ -244,31 +244,31 @@ mod tests {
 
         let before = cpu.pc;
         let operand = AddressingMode::Indirect.get_operand(&mut cpu);
-        assert_eq!(operand, 0x8133.into()); // 0x33 + (0x81 << 8)
-        assert_eq!(cpu.pc - before, 2.into());
+        assert_eq!(operand, 0x8133u16.into()); // 0x33 + (0x81 << 8)
+        assert_eq!(cpu.pc - before, 2u16.into());
     }
 
     #[test]
     fn indexed_indirect() {
         let mut cpu = new_cpu();
-        cpu.write(0x0095.into(), 0xFF.into());
-        cpu.write(0x0096.into(), 0xF0.into());
+        cpu.write(0x0095u16.into(), 0xFF.into());
+        cpu.write(0x0096u16.into(), 0xF0.into());
 
         let before = cpu.pc;
         let operand = AddressingMode::IndexedIndirect.get_operand(&mut cpu);
-        assert_eq!(operand, 0xF0FF.into()); // 0xFF + (0xF0 << 8)
-        assert_eq!(cpu.pc - before, 1.into());
+        assert_eq!(operand, 0xF0FFu16.into()); // 0xFF + (0xF0 << 8)
+        assert_eq!(cpu.pc - before, 1u16.into());
     }
 
     #[test]
     fn indirect_indexed() {
         let mut cpu = new_cpu();
-        cpu.write(0x0090.into(), 0x43.into());
-        cpu.write(0x0091.into(), 0xC0.into());
+        cpu.write(0x0090u16.into(), 0x43.into());
+        cpu.write(0x0091u16.into(), 0xC0.into());
 
         let before = cpu.pc;
         let operand = AddressingMode::IndirectIndexed.get_operand(&mut cpu);
-        assert_eq!(operand, 0xC0C3.into()); // 0xC043 + Y
-        assert_eq!(cpu.pc - before, 1.into());
+        assert_eq!(operand, 0xC0C3u16.into()); // 0xC043 + Y
+        assert_eq!(cpu.pc - before, 1u16.into());
     }
 }

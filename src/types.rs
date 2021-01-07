@@ -12,7 +12,7 @@ pub trait Memory {
     fn write(&mut self, addr: Word, value: Byte);
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Byte(u8);
 
 impl Byte {
@@ -24,6 +24,10 @@ impl Byte {
         let Self(v) = self;
         (v >> n) & 1
     }
+}
+
+pub const fn byte(n: u8) -> Byte {
+    Byte(n)
 }
 
 impl From<u8> for Byte {
@@ -53,6 +57,12 @@ impl Into<i8> for Byte {
 impl Into<i16> for Byte {
     fn into(self) -> i16 {
         self.0 as i16
+    }
+}
+
+impl Into<i32> for Byte {
+    fn into(self) -> i32 {
+        self.0 as i32
     }
 }
 
@@ -109,6 +119,24 @@ impl ops::SubAssign<u8> for Byte {
     fn sub_assign(&mut self, other: u8) {
         let Self(v) = self;
         *self = Self(v.wrapping_sub(other))
+    }
+}
+
+impl ops::Mul for Byte {
+    type Output = Self;
+
+    fn mul(self, Self(rhs): Self) -> Self {
+        let Self(v) = self;
+        Self(v.wrapping_mul(rhs))
+    }
+}
+
+impl ops::Mul<u8> for Byte {
+    type Output = Self;
+
+    fn mul(self, rhs: u8) -> Self {
+        let Self(v) = self;
+        Self(v.wrapping_mul(rhs))
     }
 }
 
@@ -247,8 +275,18 @@ impl ops::ShrAssign<u8> for Byte {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Word(u16);
+
+pub const fn word(n: u16) -> Word {
+    Word(n)
+}
+
+impl From<u8> for Word {
+    fn from(value: u8) -> Self {
+        Self(value as u16)
+    }
+}
 
 impl From<u16> for Word {
     fn from(value: u16) -> Self {
@@ -290,6 +328,11 @@ impl Word {
     pub fn byte(&self) -> Byte {
         let Self(v) = self;
         Byte(*v as u8)
+    }
+
+    pub fn nth(&self, n: u8) -> u16 {
+        let Self(v) = self;
+        (v >> n) & 1
     }
 }
 
@@ -361,12 +404,28 @@ impl ops::Shr<u16> for Word {
     }
 }
 
+impl ops::Mul<u16> for Word {
+    type Output = Self;
+
+    fn mul(self, rhs: u16) -> Self {
+        let Self(v) = self;
+        Self(v.wrapping_mul(rhs))
+    }
+}
+
 impl ops::Shl<u16> for Word {
     type Output = Self;
 
     fn shl(self, rhs: u16) -> Self::Output {
         let Self(v) = self;
         Self(v << rhs)
+    }
+}
+
+impl ops::ShlAssign<u16> for Word {
+    fn shl_assign(&mut self, rhs: u16) {
+        let Self(v) = self;
+        *self = Self(*v << rhs)
     }
 }
 
@@ -385,5 +444,23 @@ impl ops::BitOr for Word {
     fn bitor(self, Self(rhs): Word) -> Self::Output {
         let Self(v) = self;
         Self(v | rhs)
+    }
+}
+
+impl ops::BitOr<u16> for Word {
+    type Output = Self;
+
+    fn bitor(self, rhs: u16) -> Self::Output {
+        let Self(v) = self;
+        Self(v | rhs)
+    }
+}
+
+impl ops::BitXor<u16> for Word {
+    type Output = Self;
+
+    fn bitxor(self, rhs: u16) -> Self::Output {
+        let Self(v) = self;
+        Self(v ^ rhs)
     }
 }

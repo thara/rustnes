@@ -179,7 +179,7 @@ fn to_assembly_code(operation: Byte, opcode: Opcode, cpu: &CPU) -> String {
 
 fn decode_address(addressing_mode: AddressingMode, cpu: &CPU) -> Word {
     match addressing_mode {
-        AddressingMode::Implicit => 0x00.into(),
+        AddressingMode::Implicit => 0x00u16.into(),
         AddressingMode::Immediate => cpu.pc,
         AddressingMode::ZeroPage => cpu.operand_1().into(),
         AddressingMode::ZeroPageX => <Byte as Into<Word>>::into(cpu.operand_1() + cpu.x) & 0xFF,
@@ -193,7 +193,7 @@ fn decode_address(addressing_mode: AddressingMode, cpu: &CPU) -> Word {
             cpu.bus.read_on_indirect((cpu.operand_16() + cpu.x) & 0xFF)
         }
         AddressingMode::IndirectIndexed => cpu.bus.read_on_indirect(cpu.operand_16()) + cpu.y,
-        _ => 0x00.into(),
+        _ => 0x00u16.into(),
     }
 }
 
