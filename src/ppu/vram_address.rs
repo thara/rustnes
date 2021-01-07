@@ -13,6 +13,7 @@ pub struct VRAMAddress(Word);
 // ||| ++-------------- nametable select
 // +++----------------- fine Y scroll
 impl VRAMAddress {
+    #[allow(dead_code)]
     fn coarse_x(&self) -> impl Into<u16> {
         self.0 & 0b11111
     }
@@ -21,6 +22,7 @@ impl VRAMAddress {
         self.0 & 0b11111
     }
 
+    #[allow(dead_code)]
     fn coarse_y(&self) -> impl Into<u16> {
         self.0 & 0b11_11100000
     }
@@ -29,6 +31,7 @@ impl VRAMAddress {
         self.0 & 0b11_11100000 >> 5
     }
 
+    #[allow(dead_code)]
     fn fine_y(&self) -> impl Into<u16> {
         self.0 & 0b1110000_00000000
     }
@@ -45,6 +48,7 @@ impl VRAMAddress {
         self.0 & 0b1100_00000000
     }
 
+    #[allow(dead_code)]
     fn name_table_no(&self) -> impl Into<u16> {
         self.name_table_select().into() >> 10
     }
@@ -87,6 +91,12 @@ impl From<Word> for VRAMAddress {
 impl From<VRAMAddress> for Word {
     fn from(value: VRAMAddress) -> Self {
         value.0
+    }
+}
+
+impl From<VRAMAddress> for u16 {
+    fn from(value: VRAMAddress) -> Self {
+        value.0.into()
     }
 }
 

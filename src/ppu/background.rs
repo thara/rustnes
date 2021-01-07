@@ -7,7 +7,7 @@ pub(super) const TILE_HEIGHT: Byte = byte(8);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(super) struct Pixel {
     pub enabled: bool,
-    pub color: i32,
+    pub color: u16,
 }
 
 impl Pixel {
@@ -57,12 +57,6 @@ pub(super) struct TilePattern {
     pub high: Word,
 }
 
-impl TilePattern {
-    fn nth(&self, n: u8) -> u16 {
-        self.high.nth(n) << 1 | self.low.nth(n)
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct TileAttribute {
     low: Byte,
@@ -71,10 +65,4 @@ struct TileAttribute {
     // 1 quadrant of attrTableEntry
     low_latch: bool,
     high_latch: bool,
-}
-
-impl TileAttribute {
-    fn nth(&self, n: u8) -> u8 {
-        self.high.nth(n) << 1 | self.low.nth(n)
-    }
 }

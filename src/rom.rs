@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 mod nesfile;
 
 mod mapper_0;
@@ -14,7 +17,7 @@ pub trait Mapper: Memory {
 }
 
 pub struct ROM {
-    pub mapper: Box<dyn Mapper>,
+    pub mapper: Rc<RefCell<dyn Mapper>>,
 }
 
 impl ROM {
@@ -27,7 +30,7 @@ impl ROM {
             Err(MapperError::UnsupportedMapper(f.mapper_no()))
         }?;
         Ok(Self {
-            mapper: Box::new(mapper),
+            mapper: Rc::new(RefCell::new(mapper)),
         })
     }
 }

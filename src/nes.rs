@@ -1,26 +1,65 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::cpu::{CPUCycle, Trace, CPU};
 use crate::interrupt::Interrupt;
-use crate::memory_map::CPUBus;
+use crate::memory_map::{CPUBus, PPUBus};
+use crate::ppu::PPU;
 use crate::rom::ROM;
 
 pub struct NES {
     cpu: CPU,
+    ppu: Rc<RefCell<PPU>>,
 
     interrupt: Interrupt,
+
+    cycles: u128,
 }
 
 impl Default for NES {
     fn default() -> Self {
         let cpu_bus = Box::new([0; 0x10000]);
+        let ppu_bus = Box::new([0; 0x10000]);
         Self {
             cpu: CPU::new(cpu_bus),
+            ppu: Rc::new(RefCell::new(PPU::new(ppu_bus))),
             interrupt: Interrupt::NO_INTERRUPT,
+            cycles: 0,
         }
     }
 }
 
 impl NES {
-    pub fn cpu_step(&mut self) -> CPUCycle {
+    pub fn frame(&mut self) {
+        let current = self.ppu.borrow_mut().frames;
+
+        loop {
+            self.step();
+            if current != self.ppu.borrow_mut().frames {
+                break;
+            }
+        }
+    }
+
+    fn step(&mut self) {
+        let cpu_cycles = self.cpu_step();
+        self.cycles = self.cycles.wrapping_add(cpu_cycles);
+
+        let mut ppu = self.ppu.borrow_mut();
+        for _ in 0..(cpu_cycles * 3) {
+            let line = ppu.current_line();
+
+            if let Some(interrupt) = ppu.step() {
+                self.interrupt.set(interrupt);
+            }
+
+            if line != ppu.current_line() {
+                //TODO render
+            }
+        }
+    }
+
+    fn cpu_step(&mut self) -> CPUCycle {
         let before = self.cpu.cycles;
 
         self.handle_interrupt();
@@ -43,14 +82,19 @@ impl NES {
     }
 
     pub fn reset(&mut self) {
-        self.interrupt.set(Interrupt::RESET)
+        self.interrupt.set(Interrupt::RESET);
+        self.ppu.borrow_mut().reset();
     }
 
     pub fn load(&mut self, rom: ROM) {
-        let cpu_bus = Box::new(CPUBus::new(rom.mapper));
+        let ppu_bus = Box::new(PPUBus::new(rom.mapper.clone()));
+        let ppu = Rc::new(RefCell::new(PPU::new(ppu_bus)));
+        let cpu_bus = Box::new(CPUBus::new(rom.mapper.clone(), ppu.clone()));
         *self = Self {
             cpu: CPU::new(cpu_bus),
+            ppu,
             interrupt: Interrupt::NO_INTERRUPT,
+            cycles: 0,
         }
     }
 
