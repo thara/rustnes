@@ -108,7 +108,7 @@ impl Register {
             // t: ....... HGFEDCBA = d: HGFEDCBA
             // v                   = t
             self.t = (self.t & !0b0000000_11111111) | d as u16;
-            self.v = self.t.into();
+            self.v = self.t;
             self.write_toggle = false
         }
     }
