@@ -66,8 +66,12 @@ impl NES {
         self.cpu.step();
 
         let after = self.cpu.cycles;
+        Self::diff_cycles(before, after)
+    }
+
+    fn diff_cycles(before: CPUCycle, after: CPUCycle) -> CPUCycle {
         if before <= after {
-            after.wrapping_add(before)
+            after.wrapping_sub(before)
         } else {
             u128::MAX - before + after
         }
@@ -135,12 +139,24 @@ impl NES {
         self.cpu.p = 0x24.into();
 
         loop {
+            let before = self.cpu.cycles;
+
             self.handle_interrupt();
 
             let trace = Trace::trace(&self.cpu);
             f(&trace);
 
             self.cpu.step();
+
+            let after = self.cpu.cycles;
+            let cpu_cycles = Self::diff_cycles(before, after);
+
+            let mut ppu = self.ppu.borrow_mut();
+            for _ in 0..(cpu_cycles * 3) {
+                if let Some(interrupt) = ppu.step() {
+                    self.interrupt.set(interrupt);
+                }
+            }
 
             if 26554 < self.cpu.cycles {
                 break;
