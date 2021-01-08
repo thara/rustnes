@@ -79,7 +79,7 @@ impl PPU {
         match (self.scan.line, self.scan.line == 261) {
             (0..=239, pre_rendered) => {
                 // Visible or Pre Render
-                let x = self.scan.dot - 2;
+                let x = self.scan.dot.wrapping_sub(2);
 
                 let bg = self.get_background_pixel(x);
                 let sprite = self.get_sprite_pixel(x as i32, bg);
@@ -90,13 +90,12 @@ impl PPU {
                 }
 
                 if self.scan.line < MAX_LINE && x < WIDTH {
-                    let pixel = if self.reg.rendering_enabled() {
+                    let _pixel = if self.reg.rendering_enabled() {
                         self.select_pixel(bg, sprite)
                     } else {
                         0
                     };
                     // TODO Render pixel
-                    print!("{}", pixel);
                 }
 
                 if pre_rendered {

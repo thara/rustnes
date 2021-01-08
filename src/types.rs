@@ -26,7 +26,7 @@ impl Byte {
 
     pub fn nth(&self, n: u8) -> u8 {
         let Self(v) = self;
-        (v >> n) & 1
+        v.wrapping_shr(n as u32) & 1
     }
 }
 
@@ -332,7 +332,7 @@ impl Word {
 
     pub fn nth(&self, n: u8) -> u16 {
         let Self(v) = self;
-        (v >> n) & 1
+        v.wrapping_shr(n as u32) & 1
     }
 }
 
