@@ -123,15 +123,15 @@ mod tests {
         let mut cpu = CPU::new(test_mem);
         cpu.x = 0x05.into();
         cpu.y = 0x80.into();
-        cpu.pc = 0x8234.into();
-        cpu.write(0x8234.into(), 0x90.into());
-        cpu.write(0x8235.into(), 0x94.into());
-        cpu.write(0x9490.into(), 0x33.into());
-        cpu.write(0x9491.into(), 0x81.into());
-        cpu.write(0x8234.into(), 0x90.into());
-        cpu.write(0x8235.into(), 0x94.into());
-        cpu.write(0x9490.into(), 0x33.into());
-        cpu.write(0x9491.into(), 0x81.into());
+        cpu.pc = 0x8234u16.into();
+        cpu.write(0x8234u16, 0x90u8);
+        cpu.write(0x8235u16, 0x94u8);
+        cpu.write(0x9490u16, 0x33u8);
+        cpu.write(0x9491u16, 0x81u8);
+        cpu.write(0x8234u16, 0x90u8);
+        cpu.write(0x8235u16, 0x94u8);
+        cpu.write(0x9490u16, 0x33u8);
+        cpu.write(0x9491u16, 0x81u8);
         cpu
     }
 
@@ -230,7 +230,7 @@ mod tests {
     fn relative() {
         let mut cpu = new_cpu();
         cpu.pc = 0x0050u16.into();
-        cpu.write(0x0050u16.into(), 0x78.into());
+        cpu.write(0x0050u16, 0x78);
 
         let before = cpu.pc;
         let operand = AddressingMode::Relative.get_operand(&mut cpu);
@@ -251,8 +251,8 @@ mod tests {
     #[test]
     fn indexed_indirect() {
         let mut cpu = new_cpu();
-        cpu.write(0x0095u16.into(), 0xFF.into());
-        cpu.write(0x0096u16.into(), 0xF0.into());
+        cpu.write(0x0095u16, 0xFF);
+        cpu.write(0x0096u16, 0xF0);
 
         let before = cpu.pc;
         let operand = AddressingMode::IndexedIndirect.get_operand(&mut cpu);
@@ -263,8 +263,8 @@ mod tests {
     #[test]
     fn indirect_indexed() {
         let mut cpu = new_cpu();
-        cpu.write(0x0090u16.into(), 0x43.into());
-        cpu.write(0x0091u16.into(), 0xC0.into());
+        cpu.write(0x0090u16, 0x43);
+        cpu.write(0x0091u16, 0xC0);
 
         let before = cpu.pc;
         let operand = AddressingMode::IndirectIndexed.get_operand(&mut cpu);

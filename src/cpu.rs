@@ -69,7 +69,9 @@ impl CPU {
         low | high
     }
 
-    pub(super) fn write(&mut self, addr: Word, value: Byte) {
+    pub(super) fn write(&mut self, addr: impl Into<Word>, value: impl Into<Byte>) {
+        let addr: Word = addr.into();
+        let value: Byte = value.into();
         self.cycles += 1;
         self.bus.write(addr, value)
     }
@@ -173,12 +175,12 @@ mod tests {
     #[test]
     fn fetch() {
         let mut cpu = new_cpu();
-        cpu.write(0x9051.into(), 0x90.into());
-        cpu.write(0x9052.into(), 0x3F.into());
-        cpu.write(0x9053.into(), 0x81.into());
-        cpu.write(0x9054.into(), 0x90.into());
+        cpu.write(0x9051u16, 0x90);
+        cpu.write(0x9052u16, 0x3F);
+        cpu.write(0x9053u16, 0x81);
+        cpu.write(0x9054u16, 0x90);
 
-        cpu.pc = 0x9052.into();
+        cpu.pc = 0x9052u16.into();
 
         let instruction = cpu.fetch();
         assert_eq!(instruction, 0x3F.into());
@@ -196,12 +198,12 @@ mod tests {
         cpu.y = 0x59.into();
         cpu.s = 0x37.into();
         cpu.p = CPUStatus::N | CPUStatus::V;
-        cpu.pc = 0b01010110_10001101.into();
+        cpu.pc = 0b01010110_10001101u16.into();
 
-        cpu.write(0xFFFB.into(), 1.into());
-        cpu.write(0xFFFC.into(), 32.into());
-        cpu.write(0xFFFD.into(), 127.into());
-        cpu.write(0xFFFE.into(), 64.into());
+        cpu.write(0xFFFBu16, 1);
+        cpu.write(0xFFFCu16, 32);
+        cpu.write(0xFFFDu16, 127);
+        cpu.write(0xFFFEu16, 64);
 
         cpu.reset();
 
@@ -210,7 +212,7 @@ mod tests {
         assert_eq!(cpu.y, 0x59.into());
         assert_eq!(cpu.s, 0x34.into());
         assert_eq!(cpu.p, CPUStatus::N | CPUStatus::V | CPUStatus::I);
-        assert_eq!(cpu.pc, 0b01111111_00100000.into());
+        assert_eq!(cpu.pc, 0b01111111_00100000u16.into());
     }
 
     #[test]
@@ -230,10 +232,10 @@ mod tests {
         let mut cpu = new_cpu();
         cpu.s = 0xFF.into();
 
-        cpu.push_stack_word(0x98AF);
-        cpu.push_stack_word(0x003A);
+        cpu.push_stack_word(0x98AFu16);
+        cpu.push_stack_word(0x003Au16);
 
-        assert_eq!(cpu.pull_stack_word(), 0x003A.into());
-        assert_eq!(cpu.pull_stack_word(), 0x98AF.into());
+        assert_eq!(cpu.pull_stack_word(), 0x003Au16.into());
+        assert_eq!(cpu.pull_stack_word(), 0x98AFu16.into());
     }
 }
