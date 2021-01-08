@@ -35,15 +35,15 @@ impl From<u8> for Byte {
     }
 }
 
-impl Into<u8> for Byte {
-    fn into(self) -> u8 {
-        self.0
+impl From<Byte> for u8 {
+    fn from(value: Byte) -> Self {
+        value.0 as Self
     }
 }
 
-impl Into<u16> for Byte {
-    fn into(self) -> u16 {
-        self.0 as u16
+impl From<Byte> for u16 {
+    fn from(value: Byte) -> Self {
+        value.0 as Self
     }
 }
 
@@ -266,15 +266,15 @@ impl From<u16> for Word {
     }
 }
 
-impl From<Byte> for Word {
-    fn from(Byte(value): Byte) -> Self {
-        Self(value as u16)
+impl From<Word> for u16 {
+    fn from(value: Word) -> Self {
+        value.0
     }
 }
 
-impl Into<u16> for Word {
-    fn into(self) -> u16 {
-        self.0
+impl From<Byte> for Word {
+    fn from(Byte(value): Byte) -> Self {
+        Self(value as u16)
     }
 }
 
