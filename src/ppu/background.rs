@@ -1,8 +1,8 @@
-use crate::types::{byte, word, Byte, Word};
+use crate::types::{Byte, Word};
 
-pub(super) const NAME_TABLE_FIRST: Word = word(0x2000u16);
-pub(super) const ATTRIBUTE_TABLE_FIRST: Word = word(0x23C0u16);
-pub(super) const TILE_HEIGHT: Byte = byte(8);
+pub(super) const NAME_TABLE_FIRST: Word = Word::new(0x2000u16);
+pub(super) const ATTRIBUTE_TABLE_FIRST: Word = Word::new(0x23C0u16);
+pub(super) const TILE_HEIGHT: Byte = Byte::new(8);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(super) struct Pixel {

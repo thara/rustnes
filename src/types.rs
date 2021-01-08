@@ -16,6 +16,10 @@ pub trait Memory {
 pub struct Byte(u8);
 
 impl Byte {
+    pub const fn new(n: u8) -> Self {
+        Self(n)
+    }
+
     pub fn u8(&self) -> u8 {
         self.0
     }
@@ -24,10 +28,6 @@ impl Byte {
         let Self(v) = self;
         (v >> n) & 1
     }
-}
-
-pub const fn byte(n: u8) -> Byte {
-    Byte(n)
 }
 
 impl From<u8> for Byte {
@@ -278,10 +278,6 @@ impl ops::ShrAssign<u8> for Byte {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Word(u16);
 
-pub const fn word(n: u16) -> Word {
-    Word(n)
-}
-
 impl From<u8> for Word {
     fn from(value: u8) -> Self {
         Self(value as u16)
@@ -325,6 +321,10 @@ impl Into<i64> for Word {
 }
 
 impl Word {
+    pub const fn new(n: u16) -> Self {
+        Self(n)
+    }
+
     pub fn byte(&self) -> Byte {
         let Self(v) = self;
         Byte(*v as u8)
