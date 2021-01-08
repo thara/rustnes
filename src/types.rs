@@ -25,8 +25,7 @@ impl Byte {
     }
 
     pub fn nth(&self, n: u8) -> u8 {
-        let Self(v) = self;
-        v.wrapping_shr(n as u32) & 1
+        self.0.wrapping_shr(n as u32) & 1
     }
 }
 
@@ -76,8 +75,7 @@ impl ops::Add for Byte {
     type Output = Self;
 
     fn add(self, Self(rhs): Byte) -> Byte {
-        let Self(v) = self;
-        Self(v.wrapping_add(rhs))
+        Self(self.0.wrapping_add(rhs))
     }
 }
 
@@ -85,15 +83,13 @@ impl ops::Add<u8> for Byte {
     type Output = Self;
 
     fn add(self, rhs: u8) -> Byte {
-        let Self(v) = self;
-        Self(v.wrapping_add(rhs))
+        Self(self.0.wrapping_add(rhs))
     }
 }
 
 impl ops::AddAssign<u8> for Byte {
     fn add_assign(&mut self, other: u8) {
-        let Self(v) = self;
-        *self = Self(v.wrapping_add(other))
+        *self = Self(self.0.wrapping_add(other))
     }
 }
 
@@ -101,8 +97,7 @@ impl ops::Sub for Byte {
     type Output = Self;
 
     fn sub(self, Self(rhs): Byte) -> Byte {
-        let Self(v) = self;
-        Self(v.wrapping_sub(rhs))
+        Self(self.0.wrapping_sub(rhs))
     }
 }
 
@@ -110,15 +105,13 @@ impl ops::Sub<u8> for Byte {
     type Output = Self;
 
     fn sub(self, rhs: u8) -> Byte {
-        let Self(v) = self;
-        Self(v.wrapping_sub(rhs))
+        Self(self.0.wrapping_sub(rhs))
     }
 }
 
 impl ops::SubAssign<u8> for Byte {
     fn sub_assign(&mut self, other: u8) {
-        let Self(v) = self;
-        *self = Self(v.wrapping_sub(other))
+        *self = Self(self.0.wrapping_sub(other))
     }
 }
 
@@ -126,8 +119,7 @@ impl ops::Mul for Byte {
     type Output = Self;
 
     fn mul(self, Self(rhs): Self) -> Self {
-        let Self(v) = self;
-        Self(v.wrapping_mul(rhs))
+        Self(self.0.wrapping_mul(rhs))
     }
 }
 
@@ -135,8 +127,7 @@ impl ops::Mul<u8> for Byte {
     type Output = Self;
 
     fn mul(self, rhs: u8) -> Self {
-        let Self(v) = self;
-        Self(v.wrapping_mul(rhs))
+        Self(self.0.wrapping_mul(rhs))
     }
 }
 
@@ -150,8 +141,7 @@ impl ops::BitAnd for Byte {
     type Output = Self;
 
     fn bitand(self, Self(rhs): Self) -> Self::Output {
-        let Self(v) = self;
-        Self(v & rhs)
+        Self(self.0 & rhs)
     }
 }
 
@@ -159,22 +149,19 @@ impl ops::BitAnd<u8> for Byte {
     type Output = Self;
 
     fn bitand(self, rhs: u8) -> Self::Output {
-        let Self(v) = self;
-        Self(v & rhs)
+        Self(self.0 & rhs)
     }
 }
 
 impl ops::BitAndAssign for Byte {
     fn bitand_assign(&mut self, Self(rhs): Self) {
-        let Self(v) = self;
-        *self = Self(*v & rhs)
+        *self = Self(self.0 & rhs)
     }
 }
 
 impl ops::BitAndAssign<u8> for Byte {
     fn bitand_assign(&mut self, rhs: u8) {
-        let Self(v) = self;
-        *self = Self(*v & rhs)
+        *self = Self(self.0 & rhs)
     }
 }
 
@@ -182,8 +169,7 @@ impl ops::BitOr for Byte {
     type Output = Self;
 
     fn bitor(self, Self(rhs): Self) -> Self::Output {
-        let Self(v) = self;
-        Self(v | rhs)
+        Self(self.0 | rhs)
     }
 }
 
@@ -191,22 +177,19 @@ impl ops::BitOr<u8> for Byte {
     type Output = Self;
 
     fn bitor(self, rhs: u8) -> Self::Output {
-        let Self(v) = self;
-        Self(v | rhs)
+        Self(self.0 | rhs)
     }
 }
 
 impl ops::BitOrAssign for Byte {
     fn bitor_assign(&mut self, Self(rhs): Self) {
-        let Self(v) = self;
-        *self = Self(*v | rhs)
+        *self = Self(self.0 | rhs)
     }
 }
 
 impl ops::BitOrAssign<u8> for Byte {
     fn bitor_assign(&mut self, rhs: u8) {
-        let Self(v) = self;
-        *self = Self(*v | rhs)
+        *self = Self(self.0 | rhs)
     }
 }
 
@@ -214,8 +197,7 @@ impl ops::BitXor for Byte {
     type Output = Self;
 
     fn bitxor(self, Self(rhs): Self) -> Self::Output {
-        let Self(v) = self;
-        Self(v ^ rhs)
+        Self(self.0 ^ rhs)
     }
 }
 
@@ -223,15 +205,13 @@ impl ops::BitXor<u8> for Byte {
     type Output = Self;
 
     fn bitxor(self, rhs: u8) -> Self::Output {
-        let Self(v) = self;
-        Self(v ^ rhs)
+        Self(self.0 ^ rhs)
     }
 }
 
 impl ops::BitXorAssign for Byte {
     fn bitxor_assign(&mut self, Self(rhs): Self) {
-        let Self(v) = self;
-        *self = Self(*v ^ rhs)
+        *self = Self(self.0 ^ rhs)
     }
 }
 
@@ -247,15 +227,13 @@ impl ops::Shl<u8> for Byte {
     type Output = Self;
 
     fn shl(self, rhs: u8) -> Self::Output {
-        let Self(v) = self;
-        Self(v << rhs)
+        Self(self.0 << rhs)
     }
 }
 
 impl ops::ShlAssign<u8> for Byte {
     fn shl_assign(&mut self, rhs: u8) {
-        let Self(v) = self;
-        *self = Self(*v << rhs)
+        *self = Self(self.0 << rhs)
     }
 }
 
@@ -263,15 +241,13 @@ impl ops::Shr<u8> for Byte {
     type Output = Self;
 
     fn shr(self, rhs: u8) -> Self::Output {
-        let Self(v) = self;
-        Self(v >> rhs)
+        Self(self.0 >> rhs)
     }
 }
 
 impl ops::ShrAssign<u8> for Byte {
     fn shr_assign(&mut self, rhs: u8) {
-        let Self(v) = self;
-        *self = Self(*v >> rhs)
+        *self = Self(self.0 >> rhs)
     }
 }
 
@@ -326,13 +302,11 @@ impl Word {
     }
 
     pub fn byte(&self) -> Byte {
-        let Self(v) = self;
-        Byte(*v as u8)
+        Byte(self.0 as u8)
     }
 
     pub fn nth(&self, n: u8) -> u16 {
-        let Self(v) = self;
-        v.wrapping_shr(n as u32) & 1
+        self.0.wrapping_shr(n as u32) & 1
     }
 }
 
@@ -340,8 +314,7 @@ impl ops::Add for Word {
     type Output = Self;
 
     fn add(self, Self(rhs): Self) -> Word {
-        let Self(v) = self;
-        Self(v.wrapping_add(rhs))
+        Self(self.0.wrapping_add(rhs))
     }
 }
 
@@ -349,8 +322,7 @@ impl ops::Add<u16> for Word {
     type Output = Self;
 
     fn add(self, rhs: u16) -> Word {
-        let Self(v) = self;
-        Self(v.wrapping_add(rhs))
+        Self(self.0.wrapping_add(rhs))
     }
 }
 
@@ -358,22 +330,19 @@ impl ops::Add<Byte> for Word {
     type Output = Self;
 
     fn add(self, Byte(rhs): Byte) -> Self {
-        let Self(v) = self;
-        Self(v.wrapping_add(rhs.into()))
+        Self(self.0.wrapping_add(rhs.into()))
     }
 }
 
 impl ops::AddAssign for Word {
     fn add_assign(&mut self, Self(other): Self) {
-        let Self(v) = self;
-        *self = Self(v.wrapping_add(other))
+        *self = Self(self.0.wrapping_add(other))
     }
 }
 
 impl ops::AddAssign<u16> for Word {
     fn add_assign(&mut self, other: u16) {
-        let Self(v) = self;
-        *self = Self(v.wrapping_add(other))
+        *self = Self(self.0.wrapping_add(other))
     }
 }
 
@@ -381,8 +350,7 @@ impl ops::Sub for Word {
     type Output = Self;
 
     fn sub(self, Self(rhs): Self) -> Self::Output {
-        let Self(v) = self;
-        Self(v.wrapping_sub(rhs))
+        Self(self.0.wrapping_sub(rhs))
     }
 }
 
@@ -390,8 +358,7 @@ impl ops::Sub<u16> for Word {
     type Output = Self;
 
     fn sub(self, rhs: u16) -> Self::Output {
-        let Self(v) = self;
-        Self(v.wrapping_sub(rhs))
+        Self(self.0.wrapping_sub(rhs))
     }
 }
 
@@ -399,8 +366,7 @@ impl ops::Shr<u16> for Word {
     type Output = Self;
 
     fn shr(self, rhs: u16) -> Self::Output {
-        let Self(v) = self;
-        Self(v >> rhs)
+        Self(self.0 >> rhs)
     }
 }
 
@@ -408,8 +374,7 @@ impl ops::Mul<u16> for Word {
     type Output = Self;
 
     fn mul(self, rhs: u16) -> Self {
-        let Self(v) = self;
-        Self(v.wrapping_mul(rhs))
+        Self(self.0.wrapping_mul(rhs))
     }
 }
 
@@ -417,15 +382,13 @@ impl ops::Shl<u16> for Word {
     type Output = Self;
 
     fn shl(self, rhs: u16) -> Self::Output {
-        let Self(v) = self;
-        Self(v << rhs)
+        Self(self.0 << rhs)
     }
 }
 
 impl ops::ShlAssign<u16> for Word {
     fn shl_assign(&mut self, rhs: u16) {
-        let Self(v) = self;
-        *self = Self(*v << rhs)
+        *self = Self(self.0 << rhs)
     }
 }
 
@@ -433,8 +396,7 @@ impl ops::BitAnd<u16> for Word {
     type Output = Self;
 
     fn bitand(self, rhs: u16) -> Self::Output {
-        let Self(v) = self;
-        Self(v & rhs)
+        Self(self.0 & rhs)
     }
 }
 
@@ -442,8 +404,7 @@ impl ops::BitOr for Word {
     type Output = Self;
 
     fn bitor(self, Self(rhs): Word) -> Self::Output {
-        let Self(v) = self;
-        Self(v | rhs)
+        Self(self.0 | rhs)
     }
 }
 
@@ -451,8 +412,7 @@ impl ops::BitOr<u16> for Word {
     type Output = Self;
 
     fn bitor(self, rhs: u16) -> Self::Output {
-        let Self(v) = self;
-        Self(v | rhs)
+        Self(self.0 | rhs)
     }
 }
 
@@ -460,7 +420,6 @@ impl ops::BitXor<u16> for Word {
     type Output = Self;
 
     fn bitxor(self, rhs: u16) -> Self::Output {
-        let Self(v) = self;
-        Self(v ^ rhs)
+        Self(self.0 ^ rhs)
     }
 }
