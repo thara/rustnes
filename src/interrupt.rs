@@ -1,15 +1,13 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Interrupt {
-    raw_value: u8,
-}
+pub struct Interrupt(u8);
 
 impl Interrupt {
-    pub const RESET: Self = Self { raw_value: 1 << 3 };
-    pub const NMI: Self = Self { raw_value: 1 << 2 };
-    pub const IRQ: Self = Self { raw_value: 1 << 1 };
-    pub const BRK: Self = Self { raw_value: 1 << 0 };
+    pub const RESET: Self = Self(1 << 3);
+    pub const NMI: Self = Self(1 << 2);
+    pub const IRQ: Self = Self(1 << 1);
+    pub const BRK: Self = Self(1 << 0);
 
-    pub const NO_INTERRUPT: Self = Self { raw_value: 0 };
+    pub const NO_INTERRUPT: Self = Self(0);
 
     pub fn get(&self) -> Self {
         if self.is_set(Self::RESET) {
@@ -26,18 +24,18 @@ impl Interrupt {
     }
 
     pub fn is_set(&self, s: Self) -> bool {
-        self.raw_value & s.raw_value == s.raw_value
+        self.0 & s.0 == s.0
     }
 
     pub fn set(&mut self, s: Self) {
-        self.raw_value |= s.raw_value
+        self.0 |= s.0
     }
 
     pub fn unset(&mut self, s: Self) {
-        self.raw_value &= !s.raw_value
+        self.0 &= !s.0
     }
 
     // pub fn is_interrupted(&self) -> bool {
-    //     self.raw_value != 0
+    //     self.0 != 0
     // }
 }

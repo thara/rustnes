@@ -3,44 +3,38 @@ use std::ops;
 use crate::types::Byte;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct CPUStatus {
-    raw_value: u8,
-}
+pub struct CPUStatus(u8);
 
 impl CPUStatus {
     // Negative
-    pub const N: Self = Self { raw_value: 1 << 7 };
+    pub const N: Self = Self(1 << 7);
     // Overflow
-    pub const V: Self = Self { raw_value: 1 << 6 };
-    pub const R: Self = Self { raw_value: 1 << 5 };
-    pub const B: Self = Self { raw_value: 1 << 4 };
+    pub const V: Self = Self(1 << 6);
+    pub const R: Self = Self(1 << 5);
+    pub const B: Self = Self(1 << 4);
     // Decimal mode
-    pub const D: Self = Self { raw_value: 1 << 3 };
+    pub const D: Self = Self(1 << 3);
     // IRQ prevention
-    pub const I: Self = Self { raw_value: 1 << 2 };
+    pub const I: Self = Self(1 << 2);
     // Zero
-    pub const Z: Self = Self { raw_value: 1 << 1 };
+    pub const Z: Self = Self(1 << 1);
     // Carry
-    pub const C: Self = Self { raw_value: 1 << 0 };
+    pub const C: Self = Self(1 << 0);
 
     // https://wiki.nesdev.com/w/index.php/Status_flags#The_B_flag
-    pub const OPERATED_B: Self = Self {
-        raw_value: 0b110000,
-    };
-    pub const INTERRUPTED_B: Self = Self {
-        raw_value: 0b100000,
-    };
+    pub const OPERATED_B: Self = Self(0b110000);
+    pub const INTERRUPTED_B: Self = Self(0b100000);
 
     pub fn is_set(&self, s: Self) -> bool {
-        self.raw_value & s.raw_value == s.raw_value
+        self.0 & s.0 == s.0
     }
 
     pub fn set(&mut self, s: Self) {
-        self.raw_value |= s.raw_value
+        self.0 |= s.0
     }
 
     pub fn unset(&mut self, s: Self) {
-        self.raw_value &= !s.raw_value
+        self.0 &= !s.0
     }
 
     pub fn update(&mut self, s: Self, cond: bool) {
@@ -54,41 +48,35 @@ impl CPUStatus {
 
 impl From<u8> for CPUStatus {
     fn from(value: u8) -> Self {
-        Self { raw_value: value }
+        Self(value)
     }
 }
 
 impl From<Byte> for CPUStatus {
     fn from(value: Byte) -> Self {
-        Self {
-            raw_value: value.u8(),
-        }
+        Self(value.u8())
     }
 }
 
 impl From<CPUStatus> for Byte {
     fn from(value: CPUStatus) -> Self {
-        Self::from(value.raw_value)
+        Self::from(value.0)
     }
 }
 
 impl ops::BitAnd for CPUStatus {
     type Output = Self;
 
-    fn bitand(self, rhs: Self) -> Self::Output {
-        Self {
-            raw_value: self.raw_value & rhs.raw_value,
-        }
+    fn bitand(self, Self(rhs): Self) -> Self::Output {
+        Self(self.0 & rhs)
     }
 }
 
 impl ops::BitOr for CPUStatus {
     type Output = Self;
 
-    fn bitor(self, rhs: Self) -> Self::Output {
-        Self {
-            raw_value: self.raw_value | rhs.raw_value,
-        }
+    fn bitor(self, Self(rhs): Self) -> Self::Output {
+        Self(self.0 | rhs)
     }
 }
 
@@ -96,9 +84,7 @@ impl ops::BitOr<u8> for CPUStatus {
     type Output = Self;
 
     fn bitor(self, rhs: u8) -> Self::Output {
-        Self {
-            raw_value: self.raw_value | rhs,
-        }
+        Self(self.0 | rhs)
     }
 }
 
@@ -106,9 +92,7 @@ impl ops::Not for CPUStatus {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Self {
-            raw_value: !self.raw_value,
-        }
+        Self(!self.0)
     }
 }
 
@@ -120,11 +104,11 @@ mod tests {
     fn ops() {
         let a = CPUStatus::from(0b10000010);
         let b = !a;
-        assert_eq!(b.raw_value, 0b01111101);
+        assert_eq!(b.0, 0b01111101);
 
         let a = CPUStatus::from(0b10000010);
         let b = a | CPUStatus::D;
-        assert_eq!(b.raw_value, 0b10001010);
+        assert_eq!(b.0, 0b10001010);
     }
 
     #[test]
@@ -144,10 +128,10 @@ mod tests {
         let mut a = CPUStatus::from(0b00100000);
 
         a.set(CPUStatus::C);
-        assert_eq!(a.raw_value, 0b00100001);
+        assert_eq!(a.0, 0b00100001);
 
         a.set(CPUStatus::N);
-        assert_eq!(a.raw_value, 0b10100001);
+        assert_eq!(a.0, 0b10100001);
     }
 
     #[test]
@@ -155,9 +139,9 @@ mod tests {
         let mut a = CPUStatus::from(0b11111111);
 
         a.unset(CPUStatus::C);
-        assert_eq!(a.raw_value, 0b11111110);
+        assert_eq!(a.0, 0b11111110);
 
         a.unset(CPUStatus::N);
-        assert_eq!(a.raw_value, 0b01111110);
+        assert_eq!(a.0, 0b01111110);
     }
 }
